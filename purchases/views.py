@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    
     def create(self, request):
         serializer = PurchaseInvoiceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
