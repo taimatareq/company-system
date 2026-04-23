@@ -4,6 +4,8 @@ from warehouses.models import Warehouse
 from suppliers.models import Supplier
 from finance.models import ExchangeRate
 from django.conf import settings
+from items.models import Item
+
 class PurchaseInvoice(models.Model):
     PAYMENT_TYPES = [
         ('cash', 'Cash'),
@@ -42,27 +44,32 @@ class PurchaseInvoice(models.Model):
 
     def __str__(self):
         return f"Purchase Invoice {self.id}"
-from items.models import Item
+
 
 class PurchaseInvoiceItem(models.Model):
-    invoice = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name='items')
+    invoice = models.ForeignKey(
+        PurchaseInvoice,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
-    line_total = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_cost_usd = models.DecimalField(max_digits=18, decimal_places=2)
+    unit_cost_syp = models.DecimalField(max_digits=18, decimal_places=2)
 
-    unit_cost_usd = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    unit_cost_syp = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    line_total_usd = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    line_total_syp = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-
+    @property
+    def line_total_usd(self):
+        return self.quantity * self.unit_cost_usd
+    @property
+    def line_total_syp(self):
+        return self.quantity * self.unit_cost_syp
     def __str__(self):
         return f"{self.invoice.id} - {self.item.name}"
+    
 class PurchasePayment(models.Model):
     PAYMENT_METHODS = [
         ('cash', 'Cash'),
-        ('bank', 'Bank'),
-        ('transfer', 'Transfer'),
+        ('credit', 'Credit'),
     ]
 
     invoice = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name='payments')

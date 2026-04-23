@@ -55,16 +55,22 @@ class SalesInvoice(models.Model):
 from items.models import Item
 
 class SalesInvoiceItem(models.Model):
-    invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE, related_name='items')
+    invoice = models.ForeignKey(
+        SalesInvoice, 
+        on_delete=models.CASCADE,
+        related_name='items'
+          )
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    line_total = models.DecimalField(max_digits=10, decimal_places=2)
 
     unit_price_usd = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     unit_price_syp = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    line_total_usd = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    line_total_syp = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    @property
+    def line_total_usd(self):
+        return self.quantity * self.unit_cost_usd
+    @property
+    def line_total_syp(self):
+        return self.quantity * self.unit_cost_syp
 
     def __str__(self):
         return f"{self.invoice.id} - {self.item.name}"
