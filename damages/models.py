@@ -14,6 +14,7 @@ class Damage(models.Model):
         blank=True,
         related_name="created_%(class)ss"
     )
+    is_applied = models.BooleanField(default=False)
     def __str__(self):
         return f"Damage {self.id}"
 

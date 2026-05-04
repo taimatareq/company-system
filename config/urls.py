@@ -4,11 +4,15 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.views.generic import RedirectView
+
 urlpatterns = [
+    path('', RedirectView.as_view(url='/admin/', permanent=False)),
+
     path('admin/', admin.site.urls),
-    
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     path('api/', include('items.urls')),
     path('api/', include('customers.urls')),
@@ -20,4 +24,7 @@ urlpatterns = [
     path('api/', include('expenses.urls')),
     path('api/', include('inventory.urls')),
     path('api/', include('purchases.urls')),
+    path('api/', include('finance.urls')),
+    path('api/', include('damages.urls')),
+
 ]

@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+    {{ block.super }}
+
+    {% if messages %}
+    <script>
+        {% for message in messages %}
+            alert("{{ message }}");
+        {% endfor %}
+    </script>
+    {% endif %}
+{% endblock %}

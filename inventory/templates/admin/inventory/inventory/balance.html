@@ -1,0 +1,100 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Balance - حساب كمية المخزون</h1>
+
+<form method="get">
+    <label>المستودع:</label>
+    <select name="warehouse">
+        <option value="">كل المستودعات</option>
+        {% for warehouse in warehouses %}
+            <option value="{{ warehouse.id }}"
+                {% if selected_warehouse_id == warehouse.id|stringformat:"s" %}selected{% endif %}>
+                {{ warehouse.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>المادة:</label>
+    <select name="item">
+        <option value="">كل المواد</option>
+        {% for item in items %}
+            <option value="{{ item.id }}"
+                {% if selected_item_id == item.id|stringformat:"s" %}selected{% endif %}>
+                {{ item.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <button type="submit" class="button">احسب</button>
+</form>
+
+{% if result is not None %}
+    <hr>
+
+    {% if selected_warehouse_id and selected_item_id %}
+        <h2>الكمية الحالية: {{ result }}</h2>
+
+    {% elif selected_warehouse_id %}
+        <h2>كل المواد في المستودع</h2>
+
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>المادة</th>
+                <th>الكمية</th>
+                <th>آخر تاريخ</th>
+                <th>الحالة</th>
+            </tr>
+
+            {% for row in result %}
+            <tr>
+                <td>{{ row.item__name }}</td>
+                <td>{{ row.total }}</td>
+                <td>{{ row.last_date }}</td>
+                <td>
+                    {% if row.total == 0 %}
+                        ❌ نفد
+                    {% elif row.total < 5 %}
+                        ⚠️ قليل
+                    {% else %}
+                        ✔️ جيد
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">لا توجد مواد في هذا المستودع</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    {% elif selected_item_id %}
+        <h2>المادة في كل المستودعات</h2>
+
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>المستودع</th>
+                <th>الكمية</th>
+            </tr>
+
+            {% for row in result %}
+            <tr>
+                <td>{{ row.warehouse__name }}</td>
+                <td>{{ row.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">هذه المادة غير موجودة في أي مستودع</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endif %}
+
+<br>
+<a href="../">رجوع</a>
+{% endblock %}
