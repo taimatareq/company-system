@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'warehouses',
     'items',
     'inventory',
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -63,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -147,4 +150,8 @@ REST_FRAMEWORK = {
 #     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
 #     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 # }
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+]
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# CORS_ALLOW_ALL_ORIGINS = True

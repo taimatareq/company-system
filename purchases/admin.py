@@ -1,28 +1,75 @@
 from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import redirect
-
 from inventory.models import Inventory
 from inventory.services import get_latest_quantity
 from .models import PurchaseInvoice, PurchaseInvoiceItem, PurchasePayment
+from finance.models import ExchangeRate
 
 
 class PurchaseInvoiceItemInline(admin.TabularInline):
     model = PurchaseInvoiceItem
     extra = 1
     readonly_fields = ['unit_cost_syp']
+    def has_add_permission(self, request, obj=None):
+        if obj and obj.is_applied:
+            return False
+        return super().has_add_permission(request, obj)
 
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.is_applied:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.is_applied:
+            return False
+        return super().has_delete_permission(request, obj)
 
 @admin.register(PurchaseInvoice)
 class PurchaseInvoiceAdmin(admin.ModelAdmin):
+    actions = None
     inlines = [PurchaseInvoiceItemInline]
+    # class Media:
+    #     js = ('purchases/admin_purchase.js',)
+    list_display = [
+        'invoice_number',
+        'supplier',
+        'warehouse',
+        'formatted_invoice_date',
+        'payment_type',
+        'status',
+        'total_amount_usd',
+        'total_amount_syp',
+    ]
 
-    class Media:
-        js = ('purchases/admin_purchase.js',)
+    list_filter = [
+        'status',
+        'payment_type',
+        'warehouse',
+        'invoice_date',
+    ]
 
+    search_fields = [
+        'id',
+        'supplier__name',
+        'warehouse__name',
+    ]
+
+    ordering = ['-id']
+    def formatted_invoice_date(self, obj):
+        return obj.invoice_date.date()
+
+    formatted_invoice_date.short_description = "Invoice Date"
+    def invoice_number(self, obj):
+        return f"SI-{obj.id:04d}"
+    def invoice_number(self, obj):
+        return f"PI-{obj.id:04d}"
+
+    invoice_number.short_description = "Invoice"
     readonly_fields = [
-        'created_by',
-        'total_amount',
+        # 'created_by',
+        # 'total_amount',
         'total_amount_usd',
         'total_amount_syp',
         'is_applied',
@@ -37,14 +84,14 @@ class PurchaseInvoiceAdmin(admin.ModelAdmin):
         'due_date',
         'status',
         'exchange_rate',
-        'exchange_rate_value',
-        'created_by',
-        'total_amount',
+        # 'exchange_rate_value',
+        # 'created_by',
+        # 'total_amount',
         'total_amount_usd',
         'total_amount_syp',
         'is_applied',
     ]
-
+    
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -55,7 +102,15 @@ class PurchaseInvoiceAdmin(admin.ModelAdmin):
             ),
         ]
         return custom_urls + urls
+    def get_changeform_initial_data(self, request):
+            initial = super().get_changeform_initial_data(request)
 
+            latest_rate = ExchangeRate.objects.order_by("-rate_date").first()
+
+            if latest_rate:
+                initial["exchange_rate"] = latest_rate.id
+
+            return initial
     def save_model(self, request, obj, form, change):
         if not obj.created_by:
             obj.created_by = request.user
@@ -125,6 +180,25 @@ class PurchaseInvoiceAdmin(admin.ModelAdmin):
         return redirect(f"/admin/purchases/purchaseinvoice/{invoice_id}/change/")
 
     def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
         if obj and obj.is_applied:
             return False
-        return super().has_change_permission(request, obj)
+        return super().has_delete_permission(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.is_applied:
+            return [field.name for field in obj._meta.fields]
+        return self.readonly_fields
+
+    def get_inline_instances(self, request, obj=None):
+        inline_instances = super().get_inline_instances(request, obj)
+
+        if obj and obj.is_applied:
+            for inline in inline_instances:
+                inline.can_delete = False
+                inline.extra = 0
+
+        return inline_instances
+admin.site.register(PurchasePayment)

@@ -38,7 +38,21 @@ class DamageItemInline(admin.TabularInline):
 @admin.register(Damage)
 class DamageAdmin(admin.ModelAdmin):
     inlines = [DamageItemInline]
+    list_display = [
+        'damage_number',
+        'warehouse',
+        'formatted_damage_date',
+        'created_by',
+    ]
+
+    def formatted_damage_date(self, obj):
+        return obj.damage_date.date()
+    formatted_damage_date.short_description = "Damage Date"
+
     readonly_fields = ["is_applied"]
+    def damage_number(self, obj):
+        return f"DM-{obj.id:04d}"
+    damage_number.short_description = "Damage"
 
     def save_model(self, request, obj, form, change):
         if not obj.created_by:

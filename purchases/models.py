@@ -7,7 +7,10 @@ from django.conf import settings
 from items.models import Item
 
 class PurchaseInvoice(models.Model):
-    
+    class Meta:
+        verbose_name = "Purchase Invoice"
+        verbose_name_plural = "Purchase Invoices"
+
     PAYMENT_TYPES = [
         ('cash', 'Cash'),
         ('credit', 'Credit'),
@@ -72,6 +75,10 @@ class PurchaseInvoiceItem(models.Model):
         verbose_name = "Invoice Item"
         verbose_name_plural = "Invoice Items"    
 class PurchasePayment(models.Model):
+    class Meta:
+        verbose_name = "Purchase Payment"
+        verbose_name_plural = "Purchase Payments"
+        
     PAYMENT_METHODS = [
         ('cash', 'Cash'),
         ('credit', 'Credit'),

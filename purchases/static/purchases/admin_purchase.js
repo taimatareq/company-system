@@ -8,9 +8,20 @@ function setReadonlyValue(fieldName, value) {
     }
 }
 
-function calculateTotals() {
-    const rateInput = document.getElementById("id_exchange_rate_value");
-    const rate = parseFloat(rateInput?.value) || 0;
+function getExchangeRateValue() {
+    const exchangeSelect = document.getElementById("id_exchange_rate");
+    if (!exchangeSelect) return 0;
+
+    const selectedText = exchangeSelect.options[exchangeSelect.selectedIndex]?.text || "";
+    const numbers = selectedText.match(/\d+(\.\d+)?/g);
+
+    if (!numbers || numbers.length === 0) return 0;
+
+    return parseFloat(numbers[numbers.length - 1]) || 0;
+}
+
+function calculatePurchaseTotals() {
+    const rate = getExchangeRateValue();
 
     let totalUSD = 0;
     let totalSYP = 0;
@@ -23,23 +34,19 @@ function calculateTotals() {
 
         const qty = parseFloat(qtyInput.value) || 0;
         const usd = parseFloat(usdInput.value) || 0;
+
         const unitSYP = usd * rate;
 
-        // const sypCell = row.querySelector(".field-unit_cost_syp .readonly");
-        // if (sypCell) {
-        //     sypCell.textContent = unitSYP.toFixed(2);
-        // }
         const sypCell = row.querySelector(".field-unit_cost_syp");
-
         if (sypCell) {
             const readonly = sypCell.querySelector(".readonly");
-
             if (readonly) {
                 readonly.textContent = unitSYP.toFixed(2);
             } else {
-                sypCell.innerHTML = unitSYP.toFixed(2);
+                sypCell.textContent = unitSYP.toFixed(2);
             }
         }
+
         totalUSD += qty * usd;
         totalSYP += qty * unitSYP;
     });
@@ -50,7 +57,7 @@ function calculateTotals() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("JS LOADED");
+    console.log("PURCHASE JS LOADED");
 
     const paymentType = document.getElementById("id_payment_type");
     const dueDateRow = document.querySelector(".form-row.field-due_date");
@@ -61,27 +68,80 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     toggleDueDate();
-    if (paymentType) paymentType.addEventListener("change", toggleDueDate);
 
-    const exchangeSelect = document.getElementById("id_exchange_rate");
-    const exchangeValue = document.getElementById("id_exchange_rate_value");
-
-    function updateExchangeValue() {
-        if (!exchangeSelect || !exchangeValue) return;
-
-        const selectedText = exchangeSelect.options[exchangeSelect.selectedIndex]?.text || "";
-        const match = selectedText.match(/[\d.]+$/);
-
-        if (match) {
-            exchangeValue.value = parseFloat(match[0]).toFixed(2);
-            calculateTotals();
-        }
+    if (paymentType) {
+        paymentType.addEventListener("change", toggleDueDate);
     }
 
-    if (exchangeSelect) exchangeSelect.addEventListener("change", updateExchangeValue);
+    document.addEventListener("input", calculatePurchaseTotals);
+    document.addEventListener("change", calculatePurchaseTotals);
 
-    document.addEventListener("input", calculateTotals);
-    document.addEventListener("change", calculateTotals);
+    calculatePurchaseTotals();
+});
+document.addEventListener("change", function (e) {
+    if (e.target.id !== "id_branch") return;
 
-    calculateTotals();
+    const branchId = e.target.value;
+    const warehouseSelect = document.getElementById("id_warehouse");
+
+    if (!warehouseSelect) return;
+
+    warehouseSelect.innerHTML = '<option value="">---------</option>';
+
+    if (!branchId) return;
+
+    fetch(`/api/warehouses/by-branch/?branch=${branchId}`)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(function (warehouse) {
+                const option = document.createElement("option");
+                option.value = warehouse.id;
+                option.textContent = warehouse.name;
+                warehouseSelect.appendChild(option);
+            });
+        });
+});
+
+// document.addEventListener("change", function (e) {
+//     if (!e.target.name || !e.target.name.endsWith("-item")) return;
+
+//     const row = e.target.closest("tr");
+//     const itemId = e.target.value;
+
+//     if (!row || !itemId) return;
+
+//     fetch(`/api/items/purchase-price/?item=${itemId}`)
+//         .then(response => response.json())
+//         .then(data => {
+//             const costInput = row.querySelector("input[name*='unit_cost_usd']");
+//             if (costInput) {
+//                 costInput.value = parseFloat(data.price || 0).toFixed(2);
+
+//                 costInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+//                 if (typeof calculatePurchaseTotals === "function") {
+//                     setTimeout(calculatePurchaseTotals, 50);
+//                 }
+//             }
+//         });
+// });
+document.addEventListener("change", function (e) {
+    if (!e.target.name || !e.target.name.includes("-item")) return;
+
+    const row = e.target.closest("tr");
+    const itemId = e.target.value;
+
+    if (!row || !itemId) return;
+
+    fetch(`/api/items/purchase-price/?item=${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            const costInput = row.querySelector("input[name*='unit_cost_usd']");
+
+            if (costInput) {
+                costInput.value = parseFloat(data.price || 0).toFixed(2);
+                costInput.dispatchEvent(new Event("input", { bubbles: true }));
+                calculatePurchaseTotals();
+            }
+        });
 });

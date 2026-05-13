@@ -5,7 +5,7 @@
     {{ block.super }}
 
     {% if not original or not original.is_applied %}
-        <script src="{% static 'purchases/admin_purchase.js' %}"></script>
+        <script src="{% static 'sales/admin_sales.js' %}"></script>
     {% endif %}
 {% endblock %}
 
@@ -22,7 +22,7 @@
                    value="Save Invoice"
                    class="default"
                    name="_apply"
-                   onclick="return confirm('هل أنت متأكدة من حفظ واعتماد فاتورة الشراء؟');">
+                   onclick="return confirm('هل أنت متأكدة من حفظ واعتماد فاتورة البيع؟');">
         </div>
     {% endif %}
 {% endblock %}

@@ -33,3 +33,17 @@ class InventoryViewSet(viewsets.ViewSet):
         serializer = InventorySerializer(data, many=True)
 
         return Response(serializer.data)
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .services import get_latest_quantity
+
+@api_view(["GET"])
+def item_stock(request):
+    warehouse_id = request.GET.get("warehouse")
+    item_id = request.GET.get("item")
+
+    if not warehouse_id or not item_id:
+        return Response({"stock": 0})
+
+    stock = get_latest_quantity(warehouse_id, item_id)
+    return Response({"stock": stock})
