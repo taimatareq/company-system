@@ -1,13 +1,16 @@
 from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 from .models import Item
 from .serializers import ItemSerializer
 
+
 class ItemViewSet(viewsets.ModelViewSet):
-    queryset = Item.objects.all().order_by('-id')
+    queryset = Item.objects.all().order_by("-id")
     serializer_class = ItemSerializer
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Item
+    permission_classes = [AllowAny]
 
 
 @api_view(["GET"])
@@ -19,14 +22,9 @@ def item_price(request):
 
     try:
         item = Item.objects.get(id=item_id)
-        return Response({
-            "retail_price": item.retail_price
-        })
+        return Response({"retail_price": item.retail_price})
     except Item.DoesNotExist:
         return Response({"retail_price": 0})
-    from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Item
 
 
 @api_view(["GET"])
@@ -38,8 +36,6 @@ def item_purchase_price(request):
 
     try:
         item = Item.objects.get(id=item_id)
-        return Response({
-            "price": item.retail_price
-        })
+        return Response({"price": item.retail_price})
     except Item.DoesNotExist:
         return Response({"price": 0})
