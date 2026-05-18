@@ -96,6 +96,7 @@ class SalesInvoiceAdmin(admin.ModelAdmin):
         'status',
         'total_amount_usd',
         'total_amount_syp',
+        'sales_rep',
     ]
 
     list_filter = [
@@ -109,6 +110,7 @@ class SalesInvoiceAdmin(admin.ModelAdmin):
         'id',
         'customer__name',
         'warehouse__name',
+        'sales_rep',
     ]
 
     ordering = ['-id']
@@ -280,3 +282,6 @@ class SalesInvoiceAdmin(admin.ModelAdmin):
         return inline_instances
 # admin.site.register(SalesInvoiceItem)
 admin.site.register(SalesPayment)
+from .models import SalesRepresentative
+
+admin.site.register(SalesRepresentative)

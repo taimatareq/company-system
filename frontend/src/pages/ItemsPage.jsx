@@ -219,39 +219,9 @@ function ItemsPage({setPage}) {
   const currentItems = filteredItems.slice(startIndex, endIndex);
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <h2 className="logo">ERP System</h2>
+    <>
+   
 
-        <div className="menu">
-          <div className="menu-item active" onClick={() => setPage("items")}>
-            <FaBoxOpen />
-            <span>Items</span>
-          </div>
-
-          <div className="menu-item" onClick={()=> setPage("inventory")}>
-            <FaWarehouse />
-            <span>Inventory</span>
-          </div>
-
-          <div className="menu-item">
-            <FaShoppingCart />
-            <span>Sales</span>
-          </div>
-        </div>
-        <button
-        className="sidebar-logout-btn"
-        onClick={() => {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          window.location.reload();
-        }}
-      >
-        Logout
-      </button>
-      </aside>
-
-      <main className="main">
         <div className="page-header">
           <div>
             <h1 className="page-title">Items</h1>
@@ -410,8 +380,7 @@ function ItemsPage({setPage}) {
             Next
           </button>
         </div>
-      </main>
-    </div>
+        </>
   );
 }
 

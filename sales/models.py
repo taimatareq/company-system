@@ -11,9 +11,16 @@ from items.models import Item
 class SalesRepresentative(models.Model):
     name = models.CharField(max_length=150)
 
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+
+    is_active = models.BooleanField(default=True)
+
     def __str__(self):
         return self.name
-
 
 # 🧾 Sales Invoice
 class SalesInvoice(models.Model):
@@ -42,7 +49,13 @@ class SalesInvoice(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-
+    sales_rep = models.ForeignKey(
+        SalesRepresentative,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_invoices"
+    )
     invoice_date = models.DateTimeField()
 
     payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPES)

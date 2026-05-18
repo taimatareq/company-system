@@ -128,8 +128,7 @@ const token = localStorage.getItem("access_token");
     });
 };
 return (
-    <div className="main">
-
+<>
       <div className="page-header">
 
         <div>
@@ -473,8 +472,7 @@ return (
     </div>
   </div>
 )}
-    </div>
-
+</>
   );
 
 }
