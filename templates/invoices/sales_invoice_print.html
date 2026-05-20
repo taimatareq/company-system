@@ -1,0 +1,441 @@
+<!-- <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>SI-{{ invoice.id|stringformat:"04d" }}</title>
+
+    <style>
+        body {
+            font-family: Arial, Tahoma, sans-serif;
+            margin: 40px;
+            color: #222;
+            font-size: 14px;
+        }
+
+        .invoice-box {
+            max-width: 900px;
+            margin: auto;
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .invoice-no {
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 40px;
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #2f5f73;
+            color: white;
+            padding: 10px;
+        }
+
+        td {
+            border: 1px solid #ddd;
+            padding: 9px;
+            text-align: center;
+        }
+
+        .totals {
+            margin-top: 25px;
+            width: 300px;
+            margin-right: auto;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #777;
+            font-size: 12px;
+        }
+
+        .print-btn {
+            margin: 20px auto;
+            display: block;
+            padding: 10px 25px;
+            background: #2f5f73;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+
+            .invoice-box {
+                border: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">طباعة / حفظ PDF</button>
+
+<div class="invoice-box">
+
+    <div class="header">
+        <div>
+            <div class="title">فاتورة بيع</div>
+            <div class="invoice-no">رقم الفاتورة: SI-{{ invoice.id|stringformat:"04d" }}</div>
+        </div>
+
+        <div>
+            <strong>Company Name</strong><br>
+            نظام إدارة الشركة
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="label">العميل:</span>
+            {{ invoice.customer }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">التاريخ:</span>
+            {{ invoice.invoice_date|date:"Y-m-d" }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">الفرع:</span>
+            {{ invoice.branch }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">المستودع:</span>
+            {{ invoice.warehouse }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">طريقة الدفع:</span>
+            {{ invoice.payment_type }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">الحالة:</span>
+            {{ invoice.status }}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>المادة</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة USD</th>
+                <th>سعر الوحدة SYP</th>
+                <th>الإجمالي USD</th>
+                <th>الإجمالي SYP</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+                <td>{{ item.item }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unit_price_usd }}</td>
+                <td>{{ item.unit_price_syp }}</td>
+                <td>{{ item.line_total_usd }}</td>
+                <td>{{ item.line_total_syp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="total-row">
+            <span>الإجمالي بالدولار</span>
+            <span>{{ invoice.total_amount_usd }}</span>
+        </div>
+
+        <div class="total-row">
+            <span>الإجمالي بالليرة</span>
+            <span>{{ invoice.total_amount_syp }}</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        شكراً لتعاملكم معنا
+    </div>
+
+</div>
+
+</body>
+</html> -->
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>SI-{{ invoice.id|stringformat:"04d" }}</title>
+
+    <style>
+        body {
+            font-family: Arial, Tahoma, sans-serif;
+            margin: 40px;
+            color: #222;
+            font-size: 14px;
+        }
+
+        .invoice-box {
+            max-width: 900px;
+            margin: auto;
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .invoice-no {
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 40px;
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #2f5f73;
+            color: white;
+            padding: 10px;
+        }
+
+        td {
+            border: 1px solid #ddd;
+            padding: 9px;
+            text-align: center;
+        }
+
+        .totals {
+            margin-top: 25px;
+            width: 300px;
+            margin-right: auto;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #777;
+            font-size: 12px;
+        }
+
+        .print-btn {
+            margin: 20px auto;
+            display: block;
+            padding: 10px 25px;
+            background: #2f5f73;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+
+            .invoice-box {
+                border: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">طباعة / حفظ PDF</button>
+
+<div class="invoice-box">
+
+    <div class="header">
+        <div>
+            <div class="title">فاتورة بيع</div>
+            <div class="invoice-no">رقم الفاتورة: SI-{{ invoice.id|stringformat:"04d" }}</div>
+        </div>
+
+        <div>
+            <strong>Company Name</strong><br>
+            نظام إدارة الشركة
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="label">العميل:</span>
+            {{ invoice.customer }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">التاريخ:</span>
+            {{ invoice.invoice_date|date:"Y-m-d" }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">الفرع:</span>
+            {{ invoice.branch }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">المستودع:</span>
+            {{ invoice.warehouse }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">طريقة الدفع:</span>
+            {{ invoice.payment_type }}
+        </div>
+
+        <div class="info-item">
+            <span class="label">الحالة:</span>
+            {{ invoice.status }}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>المادة</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة USD</th>
+                <th>سعر الوحدة SYP</th>
+                <th>الإجمالي USD</th>
+                <th>الإجمالي SYP</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+                <td>{{ item.item }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unit_price_usd }}</td>
+                <td>{{ item.unit_price_syp }}</td>
+                <td>{{ item.line_total_usd }}</td>
+                <td>{{ item.line_total_syp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="total-row">
+            <span>الإجمالي بالدولار</span>
+            <span>{{ invoice.total_amount_usd }}</span>
+        </div>
+
+        <div class="total-row">
+            <span>الإجمالي بالليرة</span>
+            <span>{{ invoice.total_amount_syp }}</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        شكراً لتعاملكم معنا
+    </div>
+
+</div>
+
+</body>
+</html>
