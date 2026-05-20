@@ -1,11 +1,17 @@
 function Layout({ page, setPage, onLogout, children }) {
   return (
+    
     <div className="app">
       <aside className="sidebar">
         <h2 className="logo">ERP System</h2>
 
         <div className="menu">
-
+  <div
+    className={page === "dashboard" ? "menu-item active" : "menu-item"}
+    onClick={() => setPage("dashboard")}
+  >
+    <span>Dashboard</span>
+  </div>
   <div
     className={page === "items" ? "menu-item active" : "menu-item"}
     onClick={() => setPage("items")}

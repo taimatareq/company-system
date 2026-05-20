@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api";
 
 const API_URL = "http://127.0.0.1:8000/api";
-
-// const token =
-//   localStorage.getItem("access_token");
-
 function InventoryPage() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,15 +12,8 @@ function InventoryPage() {
   const [balanceResult, setBalanceResult] = useState(null);
   const [balanceTable, setBalanceTable] = useState([]);
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
 
-    fetch(`${API_URL}/inventory/`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+    apiFetch("/inventory/")
       .then((res) => res.json())
       .then((data) => {
         console.log("INVENTORY DATA:", data);
@@ -102,16 +92,9 @@ const handleCheckBalance = () => {
   return;
 }
 
-const token = localStorage.getItem("access_token");
-
-  fetch(
-    `${API_URL}/inventory/item-stock/?warehouse=${balanceWarehouse}&item=${balanceItem}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  )
+  apiFetch(
+  `/inventory/item-stock/?warehouse=${balanceWarehouse}&item=${balanceItem}`
+)
     .then((res) => res.json())
     .then((data) => {
       console.log("BALANCE DATA:", data);

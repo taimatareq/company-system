@@ -1,5 +1,4 @@
-// src/pages/ItemsPage.jsx
-
+import { apiFetch } from "../api";
 import { useEffect, useState } from "react";
 
 import {
@@ -103,16 +102,14 @@ function ItemsPage({setPage}) {
 
     if (editingItem) {
       
-      fetch(`${API_URL}/items/${editingItem.id}/`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...itemData,
-          id: editingItem.id,
-        }),
-      })
+      apiFetch(`/items/${editingItem.id}/`, {
+      method: "PUT",
+
+      body: JSON.stringify({
+        ...itemData,
+        id: editingItem.id,
+      }),
+    })
         .then((res) => res.json())
         .then((updatedItem) => {
           setItems(
@@ -132,11 +129,9 @@ function ItemsPage({setPage}) {
 
   console.log(itemData);
 
-  fetch(`${API_URL}/items/`, {
+  apiFetch("/items/", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+
     body: JSON.stringify(itemData),
   })
     .then(async (res) => {

@@ -3,15 +3,18 @@ import { apiFetch } from "../api";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
-function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
+function SalesInvoiceDetailPage({ invoiceId, setPage }) {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
 
-    apiFetch(`/purchase-invoices/${invoiceId}/`)
+    apiFetch(
+  `/sales-invoices/${invoiceId}/`
+)
       .then((res) => res.json())
       .then((data) => {
+        console.log("SALES INVOICE DETAIL:", data);
         setInvoice(data);
         setLoading(false);
       })
@@ -33,27 +36,26 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">{invoice.invoice_number}</h1>
-          <p className="page-subtitle">Purchase invoice details</p>
+          <h1 className="page-title">
+            SI-{String(invoice.id).padStart(4, "0")}
+          </h1>
+          <p className="page-subtitle">Sales invoice details</p>
         </div>
 
-            
-            <div className="page-actions">
-  <button
-    className="secondary-btn"
-    onClick={() => setPage("purchase-invoices")}
-  >
-    Back
-  </button>
-</div>
-
+        <button
+          className="secondary-btn"
+          onClick={() => setPage("sales-invoices")}
+        >
+          Back
+        </button>
       </div>
 
       <div className="card">
         <div className="invoice-info-grid">
-          <p><strong>Supplier:</strong> {invoice.supplier}</p>
-          <p><strong>Branch:</strong> {invoice.branch}</p>
-          <p><strong>Warehouse:</strong> {invoice.warehouse}</p>
+          <p><strong>Customer:</strong> {invoice.customer_name}</p>
+          <p><strong>Branch:</strong> {invoice.branch_name}</p>
+          <p><strong>Warehouse:</strong> {invoice.warehouse_name}</p>
+          <p><strong>Sales Rep:</strong> {invoice.sales_rep_name|| "-"}</p>
           <p><strong>Date:</strong> {new Date(invoice.invoice_date).toLocaleDateString()}</p>
           <p><strong>Payment:</strong> {invoice.payment_type}</p>
           <p><strong>Status:</strong> {invoice.status}</p>
@@ -74,14 +76,24 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
           </thead>
 
           <tbody>
-            {invoice.items.map((item) => (
+            {(invoice.items || []).map((item) => (
               <tr key={item.id}>
-                <td>{item.item}</td>
+                <td>{item.item_name }</td>
                 <td>{item.quantity}</td>
-                <td>{item.unit_cost_usd}</td>
-                <td>{item.unit_cost_syp}</td>
-                <td>{item.total_usd}</td>
-                <td>{item.total_syp}</td>
+                <td>{item.unit_price_usd}</td>
+                <td>{item.unit_price_syp}</td>
+                <td>
+                  {(
+                    Number(item.quantity || 0) *
+                    Number(item.unit_price_usd || 0)
+                  ).toFixed(2)}
+                </td>
+                <td>
+                  {(
+                    Number(item.quantity || 0) *
+                    Number(item.unit_price_syp || 0)
+                  ).toFixed(2)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -98,23 +110,21 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
             <strong>{invoice.total_amount_syp} SYP</strong>
           </div>
         </div>
-        
       </div>
-      <div>
-        <div className="invoice-actions">
-       <button
-            className="print-invoice-btn"
-            onClick={() => {
-                document.title = invoice.invoice_number;
-                window.print();
-            }}
-            >
-            Print Invoice
+
+      <div className="invoice-actions">
+        <button
+          className="print-invoice-btn"
+          onClick={() => {
+            document.title = `SI-${String(invoice.id).padStart(4, "0")}`;
+            window.print();
+          }}
+        >
+          Print Invoice
         </button>
-</div>
       </div>
     </>
   );
 }
 
-export default PurchaseInvoiceDetailPage;
+export default SalesInvoiceDetailPage;

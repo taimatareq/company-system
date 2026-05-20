@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { apiFetch } from "../api";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
@@ -9,37 +10,44 @@ function PurchasesPage({ setPage }) {
   const [suppliers, setSuppliers] = useState([]);
   const [items, setItems] = useState([]);
   const [exchangeRates, setExchangeRates] = useState([]);
-
   const [branch, setBranch] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const [supplier, setSupplier] = useState("");
   const [paymentType, setPaymentType] = useState("cash");
   const [dueDate, setDueDate] = useState("");
   const [exchangeRate, setExchangeRate] = useState("");
-
-  const [invoiceItems, setInvoiceItems] = useState([
-    {
-      item: "",
-      quantity: "",
-      unit_cost_usd: "",
-      unit_cost_syp: "",
-    },
-  ]);
-
+  const [showExchangeRateModal, setShowExchangeRateModal] =useState(false);
+  const [newExchangeRate, setNewExchangeRate] =useState("");
+  const [newExchangeRateDate, setNewExchangeRateDate] =useState(new Date().toISOString().split("T")[0]);
+  const [invoiceItems, setInvoiceItems] = useState([{item: "",quantity: "",unit_cost_usd: "",unit_cost_syp: "",},]);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemCode, setNewItemCode] = useState("");
+  const [newRetailPrice, setNewRetailPrice] = useState("");
+  const [newWholesalePrice, setNewWholesalePrice] =
+  useState("");
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
 
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    };
+    // const headers = {
+    //   Authorization: `Bearer ${token}`,
+    //   "Content-Type": "application/json",
+    // };
 
     Promise.all([
-      fetch(`${API_URL}/branches/`, { headers }).then((res) => res.json()),
-      fetch(`${API_URL}/suppliers/`, { headers }).then((res) => res.json()),
-      fetch(`${API_URL}/items/`, { headers }).then((res) => res.json()),
-      fetch(`${API_URL}/exchange-rates/`, { headers }).then((res) => res.json()),
-    ])
+     apiFetch("/branches/")
+    .then((res) => res.json()),
+
+    apiFetch("/suppliers/")
+    .then((res) => res.json()),
+
+    apiFetch("/items/")
+    .then((res) => res.json()),
+
+    apiFetch("/exchange-rates/")
+    .then((res) => res.json()),
+        ])
       .then(([branchesData, suppliersData, itemsData, ratesData]) => {
         setBranches(Array.isArray(branchesData) ? branchesData : branchesData.results || []);
         setSuppliers(Array.isArray(suppliersData) ? suppliersData : suppliersData.results || []);
@@ -68,13 +76,10 @@ function PurchasesPage({ setPage }) {
       return;
     }
 
-    const token = localStorage.getItem("access_token");
 
-    fetch(`${API_URL}/warehouses/by-branch/?branch=${branch}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    apiFetch(
+  `/warehouses/by-branch/?branch=${branch}`
+)
       .then((res) => res.json())
       .then((data) => {
         setWarehouses(Array.isArray(data) ? data : []);
@@ -87,8 +92,11 @@ function PurchasesPage({ setPage }) {
   }, [branch]);
 
   const handleItemChange = (index, field, value) => {
-    if (field === "item") {
+  const updatedItems = [...invoiceItems];
 
+  updatedItems[index][field] = value;
+
+  if (field === "item") {
     const itemAlreadyExists = invoiceItems.some(
       (row, i) =>
         i !== index &&
@@ -97,21 +105,31 @@ function PurchasesPage({ setPage }) {
 
     if (itemAlreadyExists) {
       alert("Item already added");
-
       return;
     }
+
+
+    apiFetch(
+  `/items/${value}/last-purchase-price/`
+)
+      .then((res) => res.json())
+      .then((data) => {
+        updatedItems[index].unit_cost_usd =
+          data.unit_cost_usd || 0;
+
+        updatedItems[index].unit_cost_syp =
+          data.unit_cost_syp || 0;
+
+        setInvoiceItems([...updatedItems]);
+      });
+
+    return;
   }
-    const updatedItems = [...invoiceItems];
 
-    updatedItems[index][field] = value;
+  setInvoiceItems(updatedItems);
+};
 
-    if (field === "item") {
-      const selectedItem = items.find((item) => String(item.id) === String(value));
-      updatedItems[index].unit_cost_usd = selectedItem?.retail_price || "";
-    }
-
-    setInvoiceItems(updatedItems);
-  };
+    
 
   const addRow = () => {
     setInvoiceItems([
@@ -130,7 +148,7 @@ function PurchasesPage({ setPage }) {
   };
 
   const handleCreateInvoice = () => {
-    const token = localStorage.getItem("access_token");
+    
     if (
       paymentType === "credit" &&
       !dueDate
@@ -139,6 +157,18 @@ function PurchasesPage({ setPage }) {
 
       return;
     }
+    if (
+  invoiceItems.length === 0 ||
+  invoiceItems.some(
+    (row) =>
+      !row.item ||
+      Number(row.quantity) <= 0 ||
+      Number(row.unit_cost_usd) <= 0
+  )
+) {
+  alert("Please add at least one valid item");
+  return;
+}
     const payload = {
     branch: Number(branch),
     warehouse: Number(warehouse),
@@ -164,14 +194,11 @@ function PurchasesPage({ setPage }) {
     }),
     };
     console.log("PURCHASE PAYLOAD:", payload);
-    fetch(`${API_URL}/purchase-invoices/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    })
+    apiFetch("/purchase-invoices/", {
+  method: "POST",
+
+  body: JSON.stringify(payload),
+})
       .then(async (res) => {
         const data = await res.json();
 
@@ -227,6 +254,117 @@ const invoiceTotalSyp = invoiceItems.reduce(
   (total, row) => total + calculateRow(row).totalSyp,
   0
 );
+const handleAddExchangeRate = async () => {
+
+
+  try {
+
+   const response = await apiFetch(
+  "/exchange-rates/",
+  {
+    method: "POST",
+
+    body: JSON.stringify({
+      rate_date: newExchangeRateDate,
+
+      usd_to_syp:
+        Number(newExchangeRate),
+    }),
+  }
+);
+
+    const data = await response.json();
+
+    setExchangeRates([
+      data,
+      ...exchangeRates,
+    ]);
+
+    setExchangeRate(data.id);
+
+    setNewExchangeRate("");
+
+    setShowExchangeRateModal(false);
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error adding exchange rate");
+  }
+};
+const handleAddSupplier = async () => {
+
+const response = await apiFetch(
+  "/suppliers/",
+  {
+    method: "POST",
+
+    body: JSON.stringify({
+      name: newSupplierName,
+    }),
+  }
+);
+  const data = await response.json();
+
+setSuppliers((prev) => [
+  {
+    id: data.id,
+    name: data.name,
+  },
+  ...prev,
+]);  setSupplier(data.id);
+  setNewSupplierName("");
+  setShowSupplierModal(false);
+};
+const handleAddItem = async () => {
+
+
+  try {
+
+    const response = await apiFetch(
+  "/items/",
+  {
+    method: "POST",
+
+    body: JSON.stringify({
+      name: newItemName,
+
+      code: newItemCode,
+
+      retail_price:
+        Number(newRetailPrice),
+
+      wholesale_price:
+        Number(newWholesalePrice),
+
+      retail_tax_rate: 0,
+
+      wholesale_tax_rate: 0,
+    }),
+  }
+);
+
+    const data = await response.json();
+
+    setItems((prev) => [
+      data,
+      ...prev,
+    ]);
+
+    setNewItemName("");
+    setNewItemCode("");
+    setNewRetailPrice("");
+
+    setShowItemModal(false);
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error adding item");
+  }
+};
   return (
     <div className="main">
       <div className="page-header">
@@ -263,16 +401,31 @@ const invoiceTotalSyp = invoiceItems.reduce(
           </div>
 
           <div className="form-group">
-            <label>Supplier</label>
-            <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-              <option value="">Select Supplier</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+  <label>Supplier</label>
+
+  <div className="exchange-rate-row">
+    <select
+      value={supplier}
+      onChange={(e) => setSupplier(e.target.value)}
+    >
+      <option value="">Select Supplier</option>
+
+      {suppliers.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.name}
+        </option>
+      ))}
+    </select>
+
+    <button
+      type="button"
+      className="add-rate-btn"
+      onClick={() => setShowSupplierModal(true)}
+    >
+      +
+    </button>
+  </div>
+</div>
 
           <div className="form-group">
             <label>Payment Type</label>
@@ -289,17 +442,43 @@ const invoiceTotalSyp = invoiceItems.reduce(
             </div>
           )}
 
-          <div className="form-group">
-            <label>Exchange Rate</label>
-            <select value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)}>
-              <option value="">No Exchange Rate</option>
-              {exchangeRates.map((rate) => (
-                <option key={rate.id} value={rate.id}>
-                  {rate.usd_to_syp}
-                </option>
-              ))}
-            </select>
-          </div>
+         <div className="form-group">
+  <label>Exchange Rate</label>
+
+  <div className="exchange-rate-row">
+
+    <select
+      value={exchangeRate}
+      onChange={(e) =>
+        setExchangeRate(e.target.value)
+      }
+    >
+      <option value="">
+        Select Exchange Rate
+      </option>
+
+      {exchangeRates.map((rate) => (
+        <option
+          key={rate.id}
+          value={rate.id}
+        >
+          {rate.usd_to_syp}
+        </option>
+      ))}
+    </select>
+
+    <button
+      type="button"
+      className="add-rate-btn"
+      onClick={() =>
+        setShowExchangeRateModal(true)
+      }
+    >
+      +
+    </button>
+
+  </div>
+</div>
         </div>
       </div>
 
@@ -321,21 +500,44 @@ const invoiceTotalSyp = invoiceItems.reduce(
   {invoiceItems.map((row, index) => (
     <tr key={index}>
       <td>
-        <select
-          value={row.item}
-          onChange={(e) =>
-            handleItemChange(index, "item", e.target.value)
-          }
-        >
-          <option value="">Select Item</option>
+  <div className="exchange-rate-row">
 
-          {items.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </td>
+    <select
+      value={row.item}
+      onChange={(e) =>
+        handleItemChange(
+          index,
+          "item",
+          e.target.value
+        )
+      }
+    >
+      <option value="">
+        Select Item
+      </option>
+
+      {items.map((item) => (
+        <option
+          key={item.id}
+          value={item.id}
+        >
+          {item.name}
+        </option>
+      ))}
+    </select>
+
+    <button
+      type="button"
+      className="add-rate-btn"
+      onClick={() =>
+        setShowItemModal(true)
+      }
+    >
+      +
+    </button>
+
+  </div>
+</td>
 
       <td>
         <input
@@ -414,8 +616,140 @@ const invoiceTotalSyp = invoiceItems.reduce(
         <button className="add-btn" onClick={handleCreateInvoice}>
           Create Purchase Invoice
         </button>
-      
+      {showExchangeRateModal && (
+
+  <div className="modal-overlay">
+
+    <div className="modal-content">
+
+      <h3>Add Exchange Rate</h3>
+
+      <input
+        type="date"
+        value={newExchangeRateDate}
+        onChange={(e) =>
+          setNewExchangeRateDate(e.target.value)
+        }
+      />
+
+      <input
+        type="number"
+        placeholder="USD to SYP"
+        value={newExchangeRate}
+        onChange={(e) =>
+          setNewExchangeRate(e.target.value)
+        }
+      />
+
+      <div className="modal-actions">
+
+        <button
+          className="modal-btn secondary"
+          onClick={() =>
+            setShowExchangeRateModal(false)
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          className="modal-btn primary"
+          onClick={handleAddExchangeRate}
+        >
+          Save
+        </button>
+
+      </div>
+
     </div>
+
+  </div>
+)}
+{showSupplierModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Add Supplier</h3>
+
+      <input
+        type="text"
+        placeholder="Supplier name"
+        value={newSupplierName}
+        onChange={(e) => setNewSupplierName(e.target.value)}
+      />
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn secondary"
+          onClick={() => setShowSupplierModal(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="modal-btn primary"
+          onClick={handleAddSupplier}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showItemModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Add Item</h3>
+
+      <input
+        type="text"
+        placeholder="Item name"
+        value={newItemName}
+        onChange={(e) => setNewItemName(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="Code"
+        value={newItemCode}
+        onChange={(e) => setNewItemCode(e.target.value)}
+      />
+
+      <input
+  type="number"
+  placeholder="Retail price USD"
+  value={newRetailPrice}
+  onChange={(e) => setNewRetailPrice(e.target.value)}
+/>
+
+<input
+  type="number"
+  placeholder="Wholesale price USD"
+  value={newWholesalePrice}
+  onChange={(e) =>
+    setNewWholesalePrice(e.target.value)
+  }
+/>
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn secondary"
+          onClick={() => setShowItemModal(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="modal-btn primary"
+          onClick={handleAddItem}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+    </div>
+    
   );
 }
 

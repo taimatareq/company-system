@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api";
+
 const API_URL = "http://127.0.0.1:8000/api";
 
 function SalesPage({ setPage }) {
@@ -26,35 +28,81 @@ function SalesPage({ setPage }) {
     unit_price_syp: "",
   },
 ]);
+const [showCustomerModal, setShowCustomerModal] = useState(false);
+const [newCustomerName, setNewCustomerName] = useState("");
+const [showItemModal, setShowItemModal] =useState(false);
+const [newItemName, setNewItemName] =useState("");
+const [newItemCode, setNewItemCode] =useState("");
+const [newRetailPrice, setNewRetailPrice] =useState("");
+const [newWholesalePrice, setNewWholesalePrice] =useState("");
 useEffect(() => {
-  const token = localStorage.getItem("access_token");
+  if (!warehouse) {
+    setItems([]);
+    return;
+  }
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
 
+  apiFetch(
+  `/warehouse-items/?warehouse=${warehouse}`
+)
+    .then((res) => res.json())
+    .then((data) => {
+      setItems(Array.isArray(data) ? data : []);
+      setInvoiceItems([
+        {
+          item: "",
+          quantity: "",
+          unit_price_usd: "",
+          unit_price_syp: "",
+        },
+      ]);
+    })
+    .catch((err) => console.error(err));
+}, [warehouse]);
+useEffect(() => {
   Promise.all([
-    fetch(`${API_URL}/branches/`, { headers }),
-    fetch(`${API_URL}/customers/`, { headers }),
-    fetch(`${API_URL}/items/`, { headers }),
-    fetch(`${API_URL}/exchange-rates/`, { headers }),
-    fetch(`${API_URL}/sales-representatives/`, { headers }),
-  ])
+  apiFetch("/branches/"),
+  apiFetch("/customers/"),
+  apiFetch("/exchange-rates/"),
+  apiFetch("/sales-representatives/"),
+])
     .then((responses) =>
       Promise.all(responses.map((res) => res.json()))
     )
     .then(([
       branchesData,
       customersData,
-      itemsData,
       ratesData,
       repsData,
     ]) => {
-      setBranches(Array.isArray(branchesData) ? branchesData : branchesData.results || []);
-      setCustomers(Array.isArray(customersData) ? customersData : customersData.results || []);
-      setItems(Array.isArray(itemsData) ? itemsData : itemsData.results || []);
-      setExchangeRates(Array.isArray(ratesData) ? ratesData : ratesData.results || []);
-      setSalesReps(Array.isArray(repsData) ? repsData : repsData.results || []);
+      setBranches(
+        Array.isArray(branchesData)
+          ? branchesData
+          : branchesData?.results || []
+      );
+
+      setCustomers(
+        Array.isArray(customersData)
+          ? customersData
+          : customersData?.results || []
+      );
+
+      const ratesList =
+        Array.isArray(ratesData)
+          ? ratesData
+          : ratesData?.results || [];
+
+      setExchangeRates(ratesList);
+
+      if (ratesList.length > 0) {
+        setExchangeRate(ratesList[0].id);
+      }
+
+      setSalesReps(
+        Array.isArray(repsData)
+          ? repsData
+          : repsData?.results || []
+      );
     })
     .catch((err) => {
       console.error(err);
@@ -67,13 +115,10 @@ useEffect(() => {
     return;
   }
 
-  const token = localStorage.getItem("access_token");
 
-  fetch(`${API_URL}/warehouses/by-branch/?branch=${branch}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  apiFetch(
+  `/warehouses/by-branch/?branch=${branch}`
+)
     .then((res) => res.json())
     .then((data) => {
       setWarehouses(Array.isArray(data) ? data : []);
@@ -85,28 +130,22 @@ useEffect(() => {
 }, [branch]);
 const handleAddExchangeRate = async () => {
 
-  const token = localStorage.getItem("access_token");
 
   try {
 
-    const response = await fetch(
-      `${API_URL}/exchange-rates/`,
-      {
-        method: "POST",
+    const response = await apiFetch(
+  "/exchange-rates/",
+  {
+    method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    body: JSON.stringify({
+      rate_date: newExchangeRateDate,
 
-        body: JSON.stringify({
-          rate_date: newExchangeRateDate,
-
-          usd_to_syp:
-            Number(newExchangeRate),
-        }),
-      }
-    );
+      usd_to_syp:
+        Number(newExchangeRate),
+    }),
+  }
+);
 
     const data = await response.json();
 
@@ -188,7 +227,29 @@ const handleItemChange = (index, field, value) => {
         rateValue
       ).toFixed(2);
   }
+if (field === "quantity") {
 
+  const selectedItem = items.find(
+    (item) =>
+      item.id === Number(updatedItems[index].item)
+  );
+
+  const available =
+    Number(selectedItem?.available_quantity || 0);
+
+  if (Number(value) > available) {
+
+    alert(
+      `Only ${available} available in stock`
+    );
+
+    updatedItems[index].quantity = available;
+
+    setInvoiceItems([...updatedItems]);
+
+    return;
+  }
+}
   setInvoiceItems(updatedItems);
 };
 
@@ -311,6 +372,113 @@ const handleCreateInvoice = async () => {
     alert("Error creating invoice");
   }
 };
+const handleAddCustomer = async () => {
+
+  
+
+  try {
+
+   const response = await apiFetch(
+  "/customers/",
+  {
+    method: "POST",
+
+    body: JSON.stringify({
+      name: newCustomerName,
+    }),
+  }
+);
+
+    const data =
+      await response.json();
+
+    setCustomers((prev) => [
+      {
+        id: data.id,
+
+        name:
+          data.name ||
+          newCustomerName,
+      },
+
+      ...prev,
+    ]);
+
+    setCustomer(data.id);
+
+    setNewCustomerName("");
+
+    setShowCustomerModal(false);
+
+  } catch {
+
+    alert(
+      "Error adding customer"
+    );
+  }
+};
+const handleAddItem = async () => {
+
+  
+
+  try {
+
+    const response = await apiFetch(
+  "/items/",
+  {
+    method: "POST",
+
+    body: JSON.stringify({
+
+      name:
+        newItemName,
+
+      code:
+        newItemCode,
+
+      retail_price:
+        Number(
+          newRetailPrice
+        ),
+
+      wholesale_price:
+        Number(
+          newWholesalePrice
+        ),
+
+      retail_tax_rate: 0,
+
+      wholesale_tax_rate: 0,
+
+    }),
+  }
+);
+
+    const data =
+      await response.json();
+
+    setItems((prev) => [
+      data,
+      ...prev,
+    ]);
+
+    setNewItemName("");
+
+    setNewItemCode("");
+
+    setNewRetailPrice("");
+
+    setNewWholesalePrice("");
+
+    setShowItemModal(false);
+
+  } catch {
+
+    alert(
+      "Error adding item"
+    );
+  }
+};
   return (
     <>
       <div className="page-header">
@@ -374,50 +542,6 @@ const handleCreateInvoice = async () => {
   </select>
 </div>
   <div className="form-group">
-    <label>Customer</label>
-
-    <select
-      value={customer}
-      onChange={(e) => setCustomer(e.target.value)}
-    >
-      <option value="">
-        Select Customer
-      </option>
-
-      {customers.map((customer) => (
-        <option
-          key={customer.id}
-          value={customer.id}
-        >
-          {customer.name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <div className="form-group">
-    <label>Sales Representative</label>
-
-    <select
-      value={salesRep}
-      onChange={(e) => setSalesRep(e.target.value)}
-    >
-      <option value="">
-        Select Sales Rep
-      </option>
-
-      {salesReps.map((rep) => (
-        <option
-          key={rep.id}
-          value={rep.id}
-        >
-          {rep.name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <div className="form-group">
     <label>Payment Type</label>
 
     <select
@@ -448,6 +572,67 @@ const handleCreateInvoice = async () => {
   </div>
 )}
   </div>
+
+  <div className="form-group">
+    <label>Sales Representative</label>
+
+    <select
+      value={salesRep}
+      onChange={(e) => setSalesRep(e.target.value)}
+    >
+      <option value="">
+        Select Sales Rep
+      </option>
+
+      {salesReps.map((rep) => (
+        <option
+          key={rep.id}
+          value={rep.id}
+        >
+          {rep.name}
+        </option>
+      ))}
+    </select>
+  </div>
+<div className="form-group">
+    <label>Customer</label>
+
+    <div className="exchange-rate-row">
+
+<select
+  value={customer}
+  onChange={(e)=>
+    setCustomer(e.target.value)
+  }
+>
+  <option value="">
+    Select Customer
+  </option>
+
+  {customers.map((customer)=>(
+    <option
+      key={customer.id}
+      value={customer.id}
+    >
+      {customer.name}
+    </option>
+  ))}
+
+</select>
+
+<button
+  type="button"
+  className="add-rate-btn"
+  onClick={() =>
+    setShowCustomerModal(true)
+  }
+>
++
+</button>
+
+</div>
+  </div>
+  
 <div className="form-group">
   <label>Exchange Rate</label>
 
@@ -513,30 +698,49 @@ const handleCreateInvoice = async () => {
         <tr key={index}>
 
           <td>
-            <select
-              value={row.item}
-              onChange={(e) =>
-                handleItemChange(
-                  index,
-                  "item",
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Select Item
-              </option>
 
-              {items.map((item) => (
-                <option
-                  key={item.id}
-                  value={item.id}
-                >
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </td>
+<div className="exchange-rate-row">
+
+<select
+ value={row.item}
+ onChange={(e)=>
+   handleItemChange(
+    index,
+    "item",
+    e.target.value
+   )
+ }
+>
+
+<option value="">
+ Select Item
+</option>
+
+{items.map((item)=>(
+<option
+ key={item.id}
+ value={item.id}
+>
+{item.name}
+({item.available_quantity})
+</option>
+))}
+
+</select>
+
+<button
+type="button"
+className="add-rate-btn"
+onClick={() =>
+ setShowItemModal(true)
+}
+>
++
+</button>
+
+</div>
+
+</td>
 
           <td>
             <input
@@ -685,6 +889,87 @@ const handleCreateInvoice = async () => {
 
     </div>
 
+  </div>
+)}
+{showCustomerModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Add Customer</h3>
+
+      <input
+        type="text"
+        placeholder="Customer name"
+        value={newCustomerName}
+        onChange={(e) => setNewCustomerName(e.target.value)}
+      />
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn secondary"
+          onClick={() => setShowCustomerModal(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="modal-btn primary"
+          onClick={handleAddCustomer}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showItemModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Add Item</h3>
+
+      <input
+        type="text"
+        placeholder="Item name"
+        value={newItemName}
+        onChange={(e) => setNewItemName(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="Code"
+        value={newItemCode}
+        onChange={(e) => setNewItemCode(e.target.value)}
+      />
+
+      <input
+        type="number"
+        placeholder="Retail price USD"
+        value={newRetailPrice}
+        onChange={(e) => setNewRetailPrice(e.target.value)}
+      />
+
+      <input
+        type="number"
+        placeholder="Wholesale price USD"
+        value={newWholesalePrice}
+        onChange={(e) => setNewWholesalePrice(e.target.value)}
+      />
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn secondary"
+          onClick={() => setShowItemModal(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="modal-btn primary"
+          onClick={handleAddItem}
+        >
+          Save
+        </button>
+      </div>
+    </div>
   </div>
 )}
     </>

@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
-function SalesInvoicesPage({ setPage }) {
+function SalesInvoicesPage({
+  setPage,
+  setSelectedSalesInvoice,
+}) {
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,11 +17,7 @@ function SalesInvoicesPage({ setPage }) {
 
     const token = localStorage.getItem("access_token");
 
-    fetch(`${API_URL}/sales-invoices/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    apiFetch("/sales-invoices/")
       .then((res) => res.json())
       .then((data) => {
 
@@ -167,6 +167,7 @@ const currentInvoices =
                 <th>Invoice</th>
                 <th>Customer</th>
                 <th>Warehouse</th>
+                <th>Date</th>
                 <th>Payment</th>
                 <th>Status</th>
                 <th>Total USD</th>
@@ -181,17 +182,32 @@ const currentInvoices =
                 <tr key={invoice.id}>
 
                   <td>
-                    SI-{String(invoice.id).padStart(4, "0")}
+                    <span
+                      className="invoice-link"
+                      onClick={() => {
+                        setSelectedSalesInvoice(invoice.id);
+                        localStorage.setItem("selectedSalesInvoice", invoice.id);
+                        setPage("sales-invoice-detail");
+                      }}
+                    >
+                      SI-{String(invoice.id).padStart(4, "0")}
+                    </span>
                   </td>
 
                   <td>
-                    {invoice.customer}
+                    {invoice.customer_name}
                   </td>
 
                   <td>
-                    {invoice.warehouse}
+                    {invoice.warehouse_name}
                   </td>
-
+                  <td>
+                    {
+                      new Date(
+                        invoice.invoice_date
+                      ).toLocaleDateString()
+                    }
+                  </td>
                   <td>
                     {invoice.payment_type}
                   </td>

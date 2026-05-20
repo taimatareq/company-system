@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api";
+
 const API_URL = "http://127.0.0.1:8000/api";
 function PurchaseInvoicesPage({setPage,setSelectedPurchaseInvoice,}) {
 const [invoices, setInvoices] = useState([]);
@@ -8,13 +10,8 @@ const [selectedStatus, setSelectedStatus] = useState("all");
 const [selectedPaymentType, setSelectedPaymentType] =
   useState("all");
 useEffect(() => {
-  const token = localStorage.getItem("access_token");
 
-  fetch(`${API_URL}/purchase-invoices/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+    apiFetch("/purchase-invoices/")
     .then((res) => res.json())
     .then((data) => {
       console.log("PURCHASE INVOICES:", data);
@@ -169,7 +166,9 @@ const currentInvoices =
   <span
   className="invoice-link"
   onClick={() => {
-    setSelectedPurchaseInvoice(invoice.id);
+
+      setSelectedPurchaseInvoice(invoice.id);
+      localStorage.setItem("selectedPurchaseInvoice", invoice.id);
     setPage("purchase-invoice-detail");
   }}
 >

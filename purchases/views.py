@@ -5,7 +5,9 @@ from .services import PurchaseService
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from .models import PurchaseInvoice
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import PurchaseInvoiceItem
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     def list(self, request):
@@ -81,3 +83,29 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         raise ValidationError("Purchase invoices cannot be deleted after creation.")
+from rest_framework.decorators import api_view
+from .models import PurchaseInvoiceItem
+
+from items.models import Item
+@api_view(["GET"])
+def last_purchase_price(request, item_id):
+
+    last_item = (
+        PurchaseInvoiceItem.objects
+        .filter(item_id=item_id)
+        .order_by("-id")
+        .first()
+    )
+
+    if last_item:
+        return Response({
+            "unit_cost_usd": last_item.unit_cost_usd,
+            "unit_cost_syp": last_item.unit_cost_syp,
+        })
+
+    item = Item.objects.get(pk=item_id)
+
+    return Response({
+        "unit_cost_usd": item.retail_price,
+        "unit_cost_syp": 0,
+    })
