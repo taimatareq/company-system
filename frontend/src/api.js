@@ -33,7 +33,7 @@ export async function apiFetch(
       localStorage.getItem(
         "refresh_token"
       );
-
+    console.log("REFRESH TOKEN:", refresh);
     const refreshResponse =
       await fetch(
         `${API_URL}/token/refresh/`,

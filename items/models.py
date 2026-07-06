@@ -1,6 +1,15 @@
 from django.db import models
 class Item(models.Model):
+    ITEM_TYPES = [
+    ("product", "Product"),
+    ("service", "Service"),
+    ]
 
+    item_type = models.CharField(
+        max_length=20,
+        choices=ITEM_TYPES,
+        default="product"
+    )
     name = models.CharField(max_length=100)
 
     code = models.CharField(max_length=50, unique=True)

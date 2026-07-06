@@ -54,7 +54,9 @@ INSTALLED_APPS = [
     'damages',
     'reminders',
     'rest_framework',
-]
+    'notifications',
+    'services',
+    ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

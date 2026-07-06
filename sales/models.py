@@ -109,10 +109,7 @@ class SalesPayment(models.Model):
     class Meta:
         verbose_name = "Payment"
         verbose_name_plural = "Payment"
-    PAYMENT_METHODS = [
-        ('cash', 'Cash'),
-        ('credit', 'Credit'),
-    ]
+   
 
     invoice = models.ForeignKey(
         SalesInvoice,
@@ -122,7 +119,6 @@ class SalesPayment(models.Model):
 
     payment_date = models.DateTimeField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
     notes = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):

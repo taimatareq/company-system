@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
-
+import { useTranslation } from "react-i18next";
 const API_URL = "http://127.0.0.1:8000/api";
 function InventoryPage() {
+  const { t } = useTranslation();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showBalanceModal, setShowBalanceModal] = useState(false);
-  const [balanceWarehouse, setBalanceWarehouse] = useState("");
-  const [balanceItem, setBalanceItem] = useState("");
+  const [balanceWarehouse, setBalanceWarehouse] = useState("all");
+  const [balanceItem, setBalanceItem] = useState("all");
   const [balanceResult, setBalanceResult] = useState(null);
   const [balanceTable, setBalanceTable] = useState([]);
   useEffect(() => {
@@ -87,8 +88,8 @@ const currentInventory = operationFilteredInventory.slice(
   endIndex
 );
 const handleCheckBalance = () => {
-  if (balanceWarehouse === "" || balanceItem === "") {
-  alert("Please select warehouse and item");
+  if (balanceWarehouse === "" && balanceItem === "") {
+  alert(("please_select_warehouse_and_item"));
   return;
 }
 
@@ -111,353 +112,291 @@ const handleCheckBalance = () => {
     });
 };
 return (
-<>
-      <div className="page-header">
+  <>
+    <div className="page-header">
+      <div>
+        <h1 className="page-title">
+          {t("inventory")}
+        </h1>
 
-        <div>
-        
-          <h1 className="page-title">
-            Inventory
-          </h1>
-
-          <p className="page-subtitle">
-            Manage stock movements
-          </p>
-
-        </div>
-<button
-          className="add-btn"
-          onClick={() => setShowBalanceModal(true)}
-        >
-          Check Balance
-        </button>
+        <p className="page-subtitle">
+          {t("manage_stock_movements")}
+        </p>
       </div>
-      
-<div className="stats-grid">
 
-  <div className="stat-card">
+      <button
+        className="add-btn"
+        onClick={() => setShowBalanceModal(true)}
+      >
+        {t("check_balance")}
+      </button>
+    </div>
 
-    <h3>
-      {inventory.length}
-    </h3>
+    <div className="stats-grid">
+      <div className="stat-card">
+        <h3>{inventory.length}</h3>
+        <p>{t("total_movements")}</p>
+      </div>
 
-    <p>Total Movements</p>
+      <div className="stat-card">
+        <h3>
+          {inventory.filter((i) => i.operation_type === "purchase").length}
+        </h3>
+        <p>{t("purchases")}</p>
+      </div>
 
-  </div>
+      <div className="stat-card">
+        <h3>
+          {inventory.filter((i) => i.operation_type === "sale").length}
+        </h3>
+        <p>{t("sales")}</p>
+      </div>
 
-  <div className="stat-card">
+      <div className="stat-card">
+        <h3>
+          {inventory.filter((i) => i.operation_type === "damage").length}
+        </h3>
+        <p>{t("damages")}</p>
+      </div>
+    </div>
 
-    <h3>
-      {
-        inventory.filter(
-          (i) =>
-            i.operation_type === "purchase"
-        ).length
-      }
-    </h3>
+    <div className="table-header">
+      <div className="search-box">
+        <input
+          type="text"
+          placeholder={t("search_inventory")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-    <p>Purchases</p>
+      <div className="filter-buttons">
+        {warehouses.map((warehouse) => (
+          <button
+            key={warehouse}
+            className={
+              selectedWarehouse === warehouse
+                ? "filter-btn active"
+                : "filter-btn"
+            }
+            onClick={() => {
+              setSelectedWarehouse(warehouse);
+              setCurrentPage(1);
+            }}
+          >
+            {warehouse === "all" ? t("all_warehouses") : warehouse}
+          </button>
+        ))}
+      </div>
 
-  </div>
+      <div className="filter-buttons">
+        {operations.map((operation) => (
+          <button
+            key={operation}
+            className={
+              selectedOperation === operation
+                ? "filter-btn active"
+                : "filter-btn"
+            }
+            onClick={() => {
+              setSelectedOperation(operation);
+              setCurrentPage(1);
+            }}
+          >
+            {operation === "all"
+              ? t("all_operations")
+              : t(operation)}
+          </button>
+        ))}
+      </div>
+    </div>
 
-  <div className="stat-card">
+    <div className="card table-wrapper">
+      {loading ? (
+        <p>{t("loading_inventory")}</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>{t("warehouse")}</th>
+              <th>{t("item")}</th>
+              <th>{t("movement_qty")}</th>
+              <th>{t("quantity")}</th>
+              <th>{t("operation_type")}</th>
+              <th>{t("operation_date")}</th>
+            </tr>
+          </thead>
 
-    <h3>
-      {
-        inventory.filter(
-          (i) =>
-            i.operation_type === "sale"
-        ).length
-      }
-    </h3>
-
-    <p>Sales</p>
-
-  </div>
-
-  <div className="stat-card">
-
-    <h3>
-      {
-        inventory.filter(
-          (i) =>
-            i.operation_type === "damage"
-        ).length
-      }
-    </h3>
-
-    <p>Damages</p>
-
-  </div>
-
-</div>
-< div className="table-header">
-  <div className="search-box">
-    <input
-      type="text"
-      placeholder="Search inventory..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-    />
-    
-  </div>
-  <div className="filter-buttons">
-  {warehouses.map((warehouse) => (
-    <button
-      key={warehouse}
-      className={
-        selectedWarehouse === warehouse
-          ? "filter-btn active"
-          : "filter-btn"
-      }
-      onClick={() => {
-        setSelectedWarehouse(warehouse);
-        setCurrentPage(1);
-      }}
-    >
-      {warehouse === "all" ? "All Warehouses" : warehouse}
-    </button>
-  ))}
-</div>
-<div className="filter-buttons">
-
-  {operations.map((operation) => (
-
-    <button
-      key={operation}
-      className={
-        selectedOperation === operation
-          ? "filter-btn active"
-          : "filter-btn"
-      }
-      onClick={() => {
-        setSelectedOperation(operation);
-        setCurrentPage(1);
-      }}
-    >
-
-      {operation === "all"
-        ? "All Operations"
-        : operation}
-
-    </button>
-
-  ))}
-
-</div>
-</div>
-      <div className="card table-wrapper">
-
-        {loading ? (
-
-          <p>
-            Loading inventory...
-          </p>
-
-        ) : (
-
-          <table>
-
-            <thead>
-
-              <tr>
-
-                <th>ID</th>
-
-                <th>Warehouse</th>
-                <th>Item</th>
-                <th>Movement Qty</th>
-                <th>Quantity</th>
-                <th>Operation Type</th>
-                <th>Operation Date</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {currentInventory.map((row) => (
-
-                <tr key={row.id}>
-
-                  <td>
-                    {row.id}
-                  </td>
-
-                  <td>{row.warehouse_name}</td>
-                  <td>{row.item_name}</td>
-                  <td>{row.movement_qty}</td>
-                  <td>{row.quantity}</td>
-                  <td>{row.operation_type}</td>
-                  <td>
+          <tbody>
+            {currentInventory.map((row) => (
+              <tr key={row.id}>
+                <td>{row.id}</td>
+                <td>{row.warehouse_name}</td>
+                <td>{row.item_name}</td>
+                <td>{row.movement_qty}</td>
+                <td>{row.quantity}</td>
+                <td>{t(row.operation_type)}</td>
+                <td>
                   {row.operation_date
                     ? new Date(row.operation_date).toLocaleDateString()
                     : "-"}
-                  </td>
-                </tr>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-              ))}
+      <div className="pagination">
+        <button
+          onClick={() => setCurrentPage(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          {t("previous")}
+        </button>
 
-            </tbody>
+        <span>
+          {t("page")} {currentPage} {t("of")} {totalPages || 1}
+        </span>
 
-          </table>
-
-        )}
-<div className="pagination">
-
-  <button
-    onClick={() =>
-      setCurrentPage(
-        currentPage - 1
-      )
-    }
-    disabled={
-      currentPage === 1
-    }
-  >
-    Previous
-  </button>
-
-  <span>
-    Page {currentPage} of{" "}
-    {totalPages || 1}
-  </span>
-
-  <button
-    onClick={() =>
-      setCurrentPage(
-        currentPage + 1
-      )
-    }
-    disabled={
-      currentPage ===
-      totalPages
-    }
-  >
-    Next
-  </button>
-
-</div>
-      </div>
-{showBalanceModal && (
-  <div className="modal-overlay">
-    <div className="balance-modal">
-      <h2>Check Balance</h2>
-
-      <select
-        value={balanceWarehouse}
-        onChange={(e) => setBalanceWarehouse(e.target.value)}
-      >
-        <option value="all">All Warehouses</option>
-        {[...new Map(inventory.map(row => [row.warehouse, row])).values()].map((row) => (
-          <option key={row.warehouse} value={row.warehouse}>
-            {row.warehouse_name}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={balanceItem}
-        onChange={(e) => setBalanceItem(e.target.value)}
-      >
-        <option value="all">All Items</option>
-        {[...new Map(inventory.map(row => [row.item, row])).values()].map((row) => (
-          <option key={row.item} value={row.item}>
-            {row.item_name}
-          </option>
-        ))}
-      </select>
-
-      <button className="save-btn" onClick={handleCheckBalance}>
-        Show Balance
-      </button>
-{balanceResult && (
-  <div className="balance-summary">
-    <div className="balance-main-card">
-      <small>Current Quantity</small>
-      <h1>{balanceResult.stock}</h1>
-    </div>
-
-    <div className="balance-info-grid">
-      <div className="balance-info-card">
-        <small>Last Movement</small>
-        <h3>{balanceResult.last_operation_type || "-"}</h3>
-      </div>
-
-      <div className="balance-info-card">
-        <small>Movement Qty</small>
-        <h3>{balanceResult.last_movement_qty}</h3>
-      </div>
-
-      <div className="balance-info-card">
-        <small>Last Date</small>
-        <h3>
-          {balanceResult.last_operation_date
-            ? new Date(balanceResult.last_operation_date).toLocaleDateString()
-            : "-"}
-        </h3>
-      </div>
-
-      <div className="balance-info-card">
-        <small>Total Movements</small>
-        <h3>{balanceResult.total_movements}</h3>
+        <button
+          onClick={() => setCurrentPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          {t("next")}
+        </button>
       </div>
     </div>
-  </div>
-)}
-      {balanceTable.length > 0 && (
-  <div className="balance-table-wrapper">
-    <table className="balance-table">
-      <thead>
-        <tr>
-          {balanceWarehouse === "all" ? (
-            <th>Warehouse</th>
-          ) : (
-            <th>Item</th>
+
+    {showBalanceModal && (
+      <div className="modal-overlay">
+        <div className="balance-modal">
+          <h2>{t("check_balance")}</h2>
+
+          <select
+            value={balanceWarehouse}
+            onChange={(e) => setBalanceWarehouse(e.target.value)}
+          >
+            <option value="all">{t("all_warehouses")}</option>
+
+            {[...new Map(inventory.map((row) => [row.warehouse, row])).values()].map((row) => (
+              <option key={row.warehouse} value={row.warehouse}>
+                {row.warehouse_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={balanceItem}
+            onChange={(e) => setBalanceItem(e.target.value)}
+          >
+            <option value="all">{t("all_items")}</option>
+
+            {[...new Map(inventory.map((row) => [row.item, row])).values()].map((row) => (
+              <option key={row.item} value={row.item}>
+                {row.item_name}
+              </option>
+            ))}
+          </select>
+
+          <button className="save-btn" onClick={handleCheckBalance}>
+            {t("show_balance")}
+          </button>
+
+          {balanceResult && (
+            <div className="balance-summary">
+              <div className="balance-main-card">
+                <small>{t("current_quantity")}</small>
+                <h1>{balanceResult.stock}</h1>
+              </div>
+
+              <div className="balance-info-grid">
+                <div className="balance-info-card">
+                  <small>{t("last_movement")}</small>
+                  <h3>
+                    {balanceResult.last_operation_type
+                      ? t(balanceResult.last_operation_type)
+                      : "-"}
+                  </h3>
+                </div>
+
+                <div className="balance-info-card">
+                  <small>{t("movement_qty")}</small>
+                  <h3>{balanceResult.last_movement_qty}</h3>
+                </div>
+
+                <div className="balance-info-card">
+                  <small>{t("last_date")}</small>
+                  <h3>
+                    {balanceResult.last_operation_date
+                      ? new Date(balanceResult.last_operation_date).toLocaleDateString()
+                      : "-"}
+                  </h3>
+                </div>
+
+                <div className="balance-info-card">
+                  <small>{t("total_movements")}</small>
+                  <h3>{balanceResult.total_movements}</h3>
+                </div>
+              </div>
+            </div>
           )}
-          <th>Quantity</th>
-          <th>Last Date</th>
-        </tr>
-      </thead>
 
-      <tbody>
-        {balanceTable.map((row, index) => (
-          <tr key={index}>
-            <td>
-              {balanceWarehouse === "all"
-                ? row.warehouse_name
-                : row.item_name}
-            </td>
-            <td>{row.quantity}</td>
-            <td>
-              {row.last_date
-                ? new Date(row.last_date).toLocaleDateString()
-                : "-"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
+          {balanceTable.length > 0 && (
+            <div className="balance-table-wrapper">
+              <table className="balance-table">
+                <thead>
+                  <tr>
+                    {balanceWarehouse === "all" ? (
+                      <th>{t("warehouse")}</th>
+                    ) : (
+                      <th>{t("item")}</th>
+                    )}
 
-      <button
-        className="cancel-btn"
-        onClick={() => {
-          setShowBalanceModal(false);
-          setBalanceResult(null);
-          setBalanceTable([]);
-        }}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
-</>
-  );
+                    <th>{t("quantity")}</th>
+                    <th>{t("last_date")}</th>
+                  </tr>
+                </thead>
 
+                <tbody>
+                  {balanceTable.map((row, index) => (
+                    <tr key={index}>
+                      <td>
+                        {balanceWarehouse === "all"
+                          ? row.warehouse_name
+                          : row.item_name}
+                      </td>
+
+                      <td>{row.quantity}</td>
+
+                      <td>
+                        {row.last_date
+                          ? new Date(row.last_date).toLocaleDateString()
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <button
+            className="cancel-btn"
+            onClick={() => {
+              setShowBalanceModal(false);
+              setBalanceResult(null);
+              setBalanceTable([]);
+            }}
+          >
+            {t("close")}
+          </button>
+        </div>
+      </div>
+    )}
+  </>
+);
 }
 
 export default InventoryPage;

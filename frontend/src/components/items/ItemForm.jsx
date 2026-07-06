@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-
+import { useTranslation } from "react-i18next";
 function ItemForm({ editingItem, onSave, onCancel }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-
+  
+  const [itemType, setItemType] = useState("product");
   const [retailPrice, setRetailPrice] = useState("");
   const [retailTaxRate, setRetailTaxRate] = useState("");
 
@@ -18,6 +20,7 @@ function ItemForm({ editingItem, onSave, onCancel }) {
       setRetailTaxRate(editingItem.retail_tax_rate || "");
       setWholesalePrice(editingItem.wholesale_price || "");
       setWholesaleTaxRate(editingItem.wholesale_tax_rate || "");
+      setItemType(editingItem.item_type || "product");
     } else {
       setName("");
       setCode("");
@@ -25,29 +28,29 @@ function ItemForm({ editingItem, onSave, onCancel }) {
       setRetailTaxRate("");
       setWholesalePrice("");
       setWholesaleTaxRate("");
+      setItemType("product");
     }
   }, [editingItem]);
 
   const handleSubmit = () => {
     if (
       name.trim() === "" ||
-      code.trim() === "" ||
       retailPrice === "" ||
       retailTaxRate === "" ||
       wholesalePrice === "" ||
       wholesaleTaxRate === ""
     ) {
-      alert("Please fill all fields");
+      alert(t("please_fill_all_fields"));
       return;
     }
 
     const itemData = {
       name,
-      code,
       retail_price: Number(retailPrice),
       retail_tax_rate: Number(retailTaxRate),
       wholesale_price: Number(wholesalePrice),
       wholesale_tax_rate: Number(wholesaleTaxRate),
+      item_type: itemType,
     };
 
     onSave(itemData);
@@ -56,32 +59,47 @@ function ItemForm({ editingItem, onSave, onCancel }) {
   return (
     <div>
       <h2 className="form-title">
-        {editingItem ? "Edit Item" : "Add Item"}
+        {editingItem ? t("edit_item") : t("add_item")}
       </h2>
 
       <div className="form-grid">
         <div className="form-group">
-          <label>Name</label>
+          <label>{t("name")}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter item name"
+            placeholder={t("enter_item_name")}
           />
         </div>
 
-        <div className="form-group">
-          <label>Code</label>
+        {/* <div className="form-group">
+          <label>{t("code")}</label>
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Enter item code"
+            placeholder={t("enter_item_code")}
           />
-        </div>
-
+        </div> */}
         <div className="form-group">
-          <label>Retail Price</label>
+        <label>{t("item_type")}</label>
+
+        <select
+          value={itemType}
+          onChange={(e) => setItemType(e.target.value)}
+        >
+          <option value="product">
+            {t("product")}
+          </option>
+
+          <option value="service">
+            {t("service")}
+          </option>
+        </select>
+      </div>
+        <div className="form-group">
+          <label>{t("retail_price")}</label>
           <input
             type="number"
             step="0.01"
@@ -92,7 +110,7 @@ function ItemForm({ editingItem, onSave, onCancel }) {
         </div>
 
         <div className="form-group">
-          <label>Retail Tax %</label>
+          <label>{t("retail_tax")}</label>
           <input
             type="number"
             step="0.01"
@@ -103,7 +121,7 @@ function ItemForm({ editingItem, onSave, onCancel }) {
         </div>
 
         <div className="form-group">
-          <label>Wholesale Price</label>
+          <label>{t("wholesale_price")}</label>
           <input
             type="number"
             step="0.01"
@@ -114,7 +132,7 @@ function ItemForm({ editingItem, onSave, onCancel }) {
         </div>
 
         <div className="form-group">
-          <label>Wholesale Tax %</label>
+          <label>{t("wholesale_tax")}</label>
           <input
             type="number"
             step="0.01"
@@ -127,11 +145,11 @@ function ItemForm({ editingItem, onSave, onCancel }) {
 
       <div className="form-actions">
         <button className="save-btn" onClick={handleSubmit}>
-          Save
+          {t("save")}
         </button>
 
         <button className="cancel-btn" onClick={onCancel}>
-          Cancel
+          {t("cancel")}
         </button>
       </div>
     </div>

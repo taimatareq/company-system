@@ -1,6 +1,5 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
-from .serializers import PurchaseInvoiceCreateSerializer
 from .services import PurchaseService
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
@@ -8,6 +7,17 @@ from .models import PurchaseInvoice
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import PurchaseInvoiceItem
+from .models import PurchasePayment
+from .serializers import (
+    PurchaseInvoiceSerializer,
+    PurchaseInvoiceCreateSerializer,
+    PurchasePaymentSerializer,
+)
+from django.shortcuts import render
+from django.db.models import Sum
+from rest_framework.decorators import api_view
+from purchases.models import PurchaseInvoice
+
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     def list(self, request):
@@ -16,6 +26,13 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
         data = []
 
         for invoice in invoices:
+            total_paid = (
+                invoice.payments.aggregate(
+                    total=Sum("amount")
+                )["total"]
+                or 0
+            )
+
             data.append({
                 "id": invoice.id,
                 "invoice_number": f"PI-{invoice.id:04d}",
@@ -26,12 +43,19 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
                 "status": invoice.status,
                 "total_amount_usd": invoice.total_amount_usd,
                 "total_amount_syp": invoice.total_amount_syp,
+                "total_paid": total_paid,
+                "remaining": invoice.total_amount_usd - total_paid,
             })
 
         return Response(data)
     def retrieve(self, request, pk=None):
         invoice = PurchaseInvoice.objects.get(pk=pk)
-
+        total_paid = (
+            invoice.payments.aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
         items = []
 
         for invoice_item in invoice.items.all():
@@ -57,6 +81,8 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
             "total_amount_usd": invoice.total_amount_usd,
             "total_amount_syp": invoice.total_amount_syp,
             "items": items,
+            "total_paid": total_paid,
+            "remaining": invoice.total_amount_usd - total_paid,
         })
     def create(self, request):
         serializer = PurchaseInvoiceCreateSerializer(data=request.data)
@@ -108,4 +134,126 @@ def last_purchase_price(request, item_id):
     return Response({
         "unit_cost_usd": item.retail_price,
         "unit_cost_syp": 0,
+    })
+class PurchasePaymentViewSet(viewsets.ModelViewSet):
+    queryset = PurchasePayment.objects.all().order_by("-payment_date")
+    serializer_class = PurchasePaymentSerializer
+def purchase_payment_receipt_print(
+    request,
+    payment_id
+):
+
+    payment =PurchasePayment.objects.get(
+        pk=payment_id
+    )
+
+    invoice =payment.invoice
+
+    total_paid = (
+
+        invoice.payments
+
+        .filter(
+            id__lte=
+            payment.id
+        )
+
+        .aggregate(
+            total=
+            Sum("amount")
+        )["total"]
+
+        or 0
+
+    )
+
+    remaining = (
+
+        invoice.total_amount_usd
+        - total_paid
+
+    )
+
+    return render(
+
+        request,
+
+        "receipts/purchase_payment_receipt.html",
+
+        {
+
+            "payment":
+            payment,
+
+            "invoice":
+            invoice,
+
+            "remaining":
+            remaining,
+
+            "total_paid":
+            total_paid,
+
+        }
+
+    )
+@api_view(["GET"])
+def receivables_payables(request):
+
+    sales_total = 0
+
+    for invoice in SalesInvoice.objects.all():
+
+        paid = (
+
+            invoice.payments.aggregate(
+                total=Sum("amount")
+            )["total"]
+
+            or 0
+
+        )
+
+        remaining = (
+            invoice.total_amount_usd
+            - paid
+        )
+
+        sales_total += max(
+            remaining,
+            0
+        )
+
+    purchase_total = 0
+
+    for invoice in PurchaseInvoice.objects.all():
+
+        paid = (
+
+            invoice.payments.aggregate(
+                total=Sum("amount")
+            )["total"]
+
+            or 0
+
+        )
+
+        remaining = (
+            invoice.total_amount_usd
+            - paid
+        )
+
+        purchase_total += max(
+            remaining,
+            0
+        )
+
+    return Response({
+
+        "receivables":
+        sales_total,
+
+        "payables":
+        purchase_total
+
     })

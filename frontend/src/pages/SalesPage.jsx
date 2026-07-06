@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
+import { useTranslation } from "react-i18next";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
 function SalesPage({ setPage }) {
+    const { t } = useTranslation();
+
     const [branches, setBranches] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -169,7 +172,6 @@ const handleAddExchangeRate = async () => {
 };
 const handleItemChange = (index, field, value) => {
   if (field === "item") {
-
     const itemAlreadyExists = invoiceItems.some(
       (row, i) =>
         i !== index &&
@@ -177,17 +179,15 @@ const handleItemChange = (index, field, value) => {
     );
 
     if (itemAlreadyExists) {
-      alert("Item already added");
-
+      alert(t("item_already_added"));
       return;
     }
   }
-  const updatedItems = [...invoiceItems];
 
+  const updatedItems = [...invoiceItems];
   updatedItems[index][field] = value;
 
   if (field === "item") {
-
     const selectedItem = items.find(
       (item) => item.id === Number(value)
     );
@@ -196,60 +196,47 @@ const handleItemChange = (index, field, value) => {
       (rate) => rate.id === Number(exchangeRate)
     );
 
-    const usdPrice =
-      selectedItem?.retail_price || 0;
+    const usdPrice = selectedItem?.retail_price || 0;
+    const rateValue = selectedRate?.usd_to_syp || 0;
 
-    const rateValue =
-      selectedRate?.usd_to_syp || 0;
-
-    updatedItems[index].unit_price_usd =
-      usdPrice;
-
-    updatedItems[index].unit_price_syp =
-      (usdPrice * rateValue).toFixed(2);
+    updatedItems[index].unit_price_usd = usdPrice;
+    updatedItems[index].unit_price_syp = (usdPrice * rateValue).toFixed(2);
   }
 
   if (
     field === "quantity" ||
     field === "unit_price_usd"
   ) {
-
     const selectedRate = exchangeRates.find(
       (rate) => rate.id === Number(exchangeRate)
     );
 
-    const rateValue =
-      selectedRate?.usd_to_syp || 0;
+    const rateValue = selectedRate?.usd_to_syp || 0;
 
-    updatedItems[index].unit_price_syp =
-      (
-        Number(updatedItems[index].unit_price_usd || 0) *
-        rateValue
-      ).toFixed(2);
+    updatedItems[index].unit_price_syp = (
+      Number(updatedItems[index].unit_price_usd || 0) * rateValue
+    ).toFixed(2);
   }
-if (field === "quantity") {
 
-  const selectedItem = items.find(
-    (item) =>
-      item.id === Number(updatedItems[index].item)
-  );
-
-  const available =
-    Number(selectedItem?.available_quantity || 0);
-
-  if (Number(value) > available) {
-
-    alert(
-      `Only ${available} available in stock`
+  if (field === "quantity") {
+    const selectedItem = items.find(
+      (item) =>
+        item.id === Number(updatedItems[index].item)
     );
 
-    updatedItems[index].quantity = available;
+    const available = Number(selectedItem?.available_quantity || 0);
 
-    setInvoiceItems([...updatedItems]);
-
-    return;
+    if (
+      selectedItem?.item_type !== "service" &&
+      Number(value) > available
+    ) {
+      alert(`${t("only_available_in_stock")} ${available}`);
+      updatedItems[index].quantity = available;
+      setInvoiceItems([...updatedItems]);
+      return;
+    }
   }
-}
+
   setInvoiceItems(updatedItems);
 };
 
@@ -290,7 +277,45 @@ const totalSyp = invoiceItems.reduce(
   0
 );
 const handleCreateInvoice = async () => {
+  if (!branch) {
+  alert(t("please_select_branch"));
+  return;
+}
 
+if (!warehouse) {
+  alert(t("please_select_warehouse"));
+  return;
+}
+
+if (!customer) {
+  alert(t("please_select_customer"));
+  return;
+}
+
+if (!exchangeRate) {
+  alert(t("please_select_exchange_rate"));
+  return;
+}
+if (paymentType === "credit" && !dueDate) {
+  alert(t("please_select_due_date"));
+  return;
+}
+if (invoiceItems.length === 0) {
+  alert(t("please_add_at_least_one_item"));
+  return;
+}
+
+const invalidRow = invoiceItems.find(
+  (row) =>
+    !row.item ||
+    Number(row.quantity) <= 0 ||
+    Number(row.unit_price_usd) <= 0
+);
+
+if (invalidRow) {
+  alert(t("please_complete_invoice_items"));
+  return;
+}
   const token = localStorage.getItem("access_token");
   if (
     paymentType === "credit" &&
@@ -361,7 +386,7 @@ const handleCreateInvoice = async () => {
     return;
     }
 
-    alert("Sales invoice created");
+    alert(t("sales_invoice_created"));
 
     setPage("sales-invoices");
 
@@ -479,347 +504,372 @@ const handleAddItem = async () => {
     );
   }
 };
-  return (
-    <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Create Sales Invoice</h1>
-          <p className="page-subtitle">Create a new sales invoice</p>
-        </div>
+return(
+  <>
+  <div className="page-header">
+    <div>
+      <h1 className="page-title">
+        {t("create_sales_invoice")}
+      </h1>
 
-        <button
-          className="secondary-btn"
-          onClick={() => setPage("sales-invoices")}
-        >
-          Back
-        </button>
-      </div>
+      <p className="page-subtitle">
+        {t("create_new_sales_invoice")}
+      </p>
+    </div>
 
-      <div className="card">
-       <div className="form-grid">
-
-  <div className="form-group">
-    <label>Branch</label>
-
-    <select
-      value={branch}
-      onChange={(e) => setBranch(e.target.value)}
+    <button
+      className="secondary-btn"
+      onClick={() => setPage("sales-invoices")}
     >
-      <option value="">
-        Select Branch
-      </option>
-
-      {branches.map((branch) => (
-        <option
-          key={branch.id}
-          value={branch.id}
-        >
-          {branch.name}
-        </option>
-      ))}
-    </select>
-
-  </div>
-<div className="form-group">
-  <label>Warehouse</label>
-
-  <select
-    value={warehouse}
-    onChange={(e) => setWarehouse(e.target.value)}
-  >
-    <option value="">
-      Select Warehouse
-    </option>
-
-    {warehouses.map((warehouse) => (
-      <option
-        key={warehouse.id}
-        value={warehouse.id}
-      >
-        {warehouse.name}
-      </option>
-    ))}
-  </select>
-</div>
-  <div className="form-group">
-    <label>Payment Type</label>
-
-    <select
-      value={paymentType}
-      onChange={(e) =>
-        setPaymentType(e.target.value)
-      }
-    >
-      <option value="cash">
-        Cash
-      </option>
-
-      <option value="credit">
-        Credit
-      </option>
-    </select>
-    {paymentType === "credit" && (
-  <div className="form-group">
-    <label>Due Date</label>
-
-    <input
-      type="date"
-      value={dueDate}
-      onChange={(e) =>
-        setDueDate(e.target.value)
-      }
-    />
-  </div>
-)}
-  </div>
-
-  <div className="form-group">
-    <label>Sales Representative</label>
-
-    <select
-      value={salesRep}
-      onChange={(e) => setSalesRep(e.target.value)}
-    >
-      <option value="">
-        Select Sales Rep
-      </option>
-
-      {salesReps.map((rep) => (
-        <option
-          key={rep.id}
-          value={rep.id}
-        >
-          {rep.name}
-        </option>
-      ))}
-    </select>
-  </div>
-<div className="form-group">
-    <label>Customer</label>
-
-    <div className="exchange-rate-row">
-
-<select
-  value={customer}
-  onChange={(e)=>
-    setCustomer(e.target.value)
-  }
->
-  <option value="">
-    Select Customer
-  </option>
-
-  {customers.map((customer)=>(
-    <option
-      key={customer.id}
-      value={customer.id}
-    >
-      {customer.name}
-    </option>
-  ))}
-
-</select>
-
-<button
-  type="button"
-  className="add-rate-btn"
-  onClick={() =>
-    setShowCustomerModal(true)
-  }
->
-+
-</button>
-
-</div>
-  </div>
-  
-<div className="form-group">
-  <label>Exchange Rate</label>
-
-  <div className="exchange-rate-row">
-
-    <select
-      value={exchangeRate}
-      onChange={(e) =>
-        setExchangeRate(e.target.value)
-      }
-    >
-      <option value="">
-        Select Exchange Rate
-      </option>
-
-      {exchangeRates.map((rate) => (
-        <option
-          key={rate.id}
-          value={rate.id}
-        >
-          {rate.usd_to_syp}
-        </option>
-      ))}
-    </select>
-<div>
-  <button
-      type="button"
-      className="add-rate-btn"
-      onClick={() =>
-        setShowExchangeRateModal(true)
-      }
-    >
-      +
+      {t("back")}
     </button>
-</div>
-    
-
   </div>
-</div>
-</div>
 
-      </div>
-      <div className="card table-wrapper">
+  <div className="card">
+    <div className="form-grid">
 
-  <table>
+      <div className="form-group">
+        <label>{t("branch")}</label>
 
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Quantity</th>
-        <th>Unit USD</th>
-        <th>Unit SYP</th>
-        <th>Total USD</th>
-        <th>Total SYP</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+        <select
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
+        >
+          <option value="">
+            {t("select_branch")}
+          </option>
 
-    <tbody>
-
-      {invoiceItems.map((row, index) => (
-
-        <tr key={index}>
-
-          <td>
-
-<div className="exchange-rate-row">
-
-<select
- value={row.item}
- onChange={(e)=>
-   handleItemChange(
-    index,
-    "item",
-    e.target.value
-   )
- }
->
-
-<option value="">
- Select Item
-</option>
-
-{items.map((item)=>(
-<option
- key={item.id}
- value={item.id}
->
-{item.name}
-({item.available_quantity})
-</option>
-))}
-
-</select>
-
-<button
-type="button"
-className="add-rate-btn"
-onClick={() =>
- setShowItemModal(true)
-}
->
-+
-</button>
-
-</div>
-
-</td>
-
-          <td>
-            <input
-              type="number"
-              value={row.quantity}
-              onChange={(e) =>
-                handleItemChange(
-                  index,
-                  "quantity",
-                  e.target.value
-                )
-              }
-            />
-          </td>
-
-          <td>
-            <input
-              type="number"
-              value={row.unit_price_usd}
-              onChange={(e) =>
-                handleItemChange(
-                  index,
-                  "unit_price_usd",
-                  e.target.value
-                )
-              }
-            />
-          </td>
-
-          <td>
-            <input
-              type="number"
-              value={row.unit_price_syp}
-              readOnly
-            />
-          </td>
-<td>
-  {(
-    Number(row.quantity || 0) *
-    Number(row.unit_price_usd || 0)
-  ).toFixed(2)}
-</td>
-
-<td>
-  {(
-    Number(row.quantity || 0) *
-    Number(row.unit_price_syp || 0)
-  ).toFixed(2)}
-</td>
-          <td>
-            <button
-              className="delete-btn"
-              onClick={() => removeRow(index)}
+          {branches.map((branch) => (
+            <option
+              key={branch.id}
+              value={branch.id}
             >
-                X
-            </button>
-          </td>
+              {branch.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
+      <div className="form-group">
+        <label>{t("warehouse")}</label>
+
+        <select
+          value={warehouse}
+          onChange={(e) => setWarehouse(e.target.value)}
+        >
+          <option value="">
+            {t("select_warehouse")}
+          </option>
+
+          {warehouses.map((warehouse) => (
+            <option
+              key={warehouse.id}
+              value={warehouse.id}
+            >
+              {warehouse.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>{t("payment_type")}</label>
+
+        <select
+          value={paymentType}
+          onChange={(e) => setPaymentType(e.target.value)}
+        >
+          <option value="cash">
+            {t("cash")}
+          </option>
+
+          <option value="credit">
+            {t("credit")}
+          </option>
+        </select>
+
+        {paymentType === "credit" && (
+          <div className="form-group">
+            <label>{t("due_date")}</label>
+
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) =>
+                setDueDate(e.target.value)
+              }
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="form-group">
+        <label>{t("sales_representative")}</label>
+
+        <select
+          value={salesRep}
+          onChange={(e) => setSalesRep(e.target.value)}
+        >
+          <option value="">
+            {t("select_sales_representative")}
+          </option>
+
+          {salesReps.map((rep) => (
+            <option
+              key={rep.id}
+              value={rep.id}
+            >
+              {rep.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>{t("customer")}</label>
+
+        <div className="exchange-rate-row">
+          <select
+            value={customer}
+            onChange={(e) =>
+              setCustomer(e.target.value)
+            }
+          >
+            <option value="">
+              {t("select_customer")}
+            </option>
+
+            {customers.map((customer) => (
+              <option
+                key={customer.id}
+                value={customer.id}
+              >
+                {customer.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            className="add-rate-btn"
+            onClick={() =>
+              setShowCustomerModal(true)
+            }
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label>{t("exchange_rate")}</label>
+
+        <div className="exchange-rate-row">
+          <select
+            value={exchangeRate}
+            onChange={(e) =>
+              setExchangeRate(e.target.value)
+            }
+          >
+            <option value="">
+              {t("select_exchange_rate")}
+            </option>
+
+            {exchangeRates.map((rate) => (
+              <option
+                key={rate.id}
+                value={rate.id}
+              >
+                {rate.usd_to_syp}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            className="add-rate-btn"
+            onClick={() =>
+              setShowExchangeRateModal(true)
+            }
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div className="card table-wrapper">
+    <table>
+
+      <thead>
+        <tr>
+          <th>{t("item")}</th>
+          <th>{t("quantity")}</th>
+          <th>{t("unit_usd")}</th>
+          <th>{t("unit_syp")}</th>
+          <th>{t("total_usd")}</th>
+          <th>{t("total_syp")}</th>
+          <th>{t("action")}</th>
         </tr>
+      </thead>
 
-      ))}
+      <tbody>
+        {invoiceItems.map((row, index) => (
+          <tr key={index}>
+            <td>
+              <div className="exchange-rate-row">
+<input
+  type="text"
+  placeholder={t("scan_barcode")}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      const scannedId = Number(e.target.value);
 
-    </tbody>
+      const scannedItem = items.find(
+        (item) => item.id === scannedId
+      );
 
-  </table>
+      if (!scannedItem) {
+        alert(t("item_not_found"));
+        e.target.value = "";
+        return;
+      }
 
-  <button
-    className="add-btn"
-    onClick={addRow}
-  >
-    Add Item
-  </button>
+      handleItemChange(
+        index,
+        "item",
+        String(scannedItem.id)
+      );
 
-</div>
+      handleItemChange(
+        index,
+        "quantity",
+        "1"
+      );
+
+      e.target.value = "";
+    }
+  }}
+  style={{
+    maxWidth: "160px",
+  }}
+/>
+                <select
+                  value={row.item}
+                  onChange={(e) =>
+                    handleItemChange(
+                      index,
+                      "item",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    {t("select_item")}
+                  </option>
+
+                  {items.map((item) => (
+                    <option
+                      key={item.id}
+                      value={item.id}
+                    >
+                      {item.name}
+                      ({item.available_quantity})
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  className="add-rate-btn"
+                  onClick={() =>
+                    setShowItemModal(true)
+                  }
+                >
+                  +
+                </button>
+
+              </div>
+            </td>
+
+            <td>
+              <input
+                type="number"
+                value={row.quantity}
+                onChange={(e) =>
+                  handleItemChange(
+                    index,
+                    "quantity",
+                    e.target.value
+                  )
+                }
+              />
+            </td>
+
+            <td>
+              <input
+                type="number"
+                value={row.unit_price_usd}
+                onChange={(e) =>
+                  handleItemChange(
+                    index,
+                    "unit_price_usd",
+                    e.target.value
+                  )
+                }
+              />
+            </td>
+
+            <td>
+              <input
+                type="number"
+                value={row.unit_price_syp}
+                readOnly
+              />
+            </td>
+
+            <td>
+              {(
+                Number(row.quantity || 0) *
+                Number(row.unit_price_usd || 0)
+              ).toFixed(2)}
+            </td>
+
+            <td>
+              {(
+                Number(row.quantity || 0) *
+                Number(row.unit_price_syp || 0)
+              ).toFixed(2)}
+            </td>
+
+            <td>
+              <button
+                className="delete-btn"
+                onClick={() => removeRow(index)}
+              >
+                ✕
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+
+    </table>
+
+    <button
+      className="add-btn"
+      onClick={addRow}
+    >
+      {t("add_item")}
+    </button>
+  </div>
 <div>
   <div className="card table-wrapper">
 
     <div>
-      <span>Total USD</span>
+      <span>{t("total_usd")}</span>
 
       <strong>
         ${totalUsd.toFixed(2)}
@@ -829,7 +879,7 @@ onClick={() =>
     <br />
 
     <div>
-      <span>Total SYP</span>
+      <span>{t("total_syp")}</span>
 
       <strong>
         {totalSyp.toFixed(2)} SYP
@@ -842,17 +892,17 @@ onClick={() =>
     className="add-btn"
     onClick={handleCreateInvoice}
   >
-    Create Sales Invoice
+    {t("create_sales_invoice")}
   </button>
 
 </div>
+
 {showExchangeRateModal && (
-
   <div className="modal-overlay">
-
     <div className="modal-content">
 
-      <h3>Add Exchange Rate</h3>
+      <h3>{t("add_exchange_rate")}</h3>
+
       <input
         type="date"
         value={newExchangeRateDate}
@@ -860,9 +910,10 @@ onClick={() =>
           setNewExchangeRateDate(e.target.value)
         }
       />
+
       <input
         type="number"
-        placeholder="USD to SYP"
+        placeholder={t("usd_to_syp")}
         value={newExchangeRate}
         onChange={(e) =>
           setNewExchangeRate(e.target.value)
@@ -871,110 +922,135 @@ onClick={() =>
 
       <div className="modal-actions">
 
-  <button
-    className="modal-btn secondary"
-    onClick={() => setShowExchangeRateModal(false)}
-  >
-    Cancel
-  </button>
+        <button
+          className="modal-btn secondary"
+          onClick={() =>
+            setShowExchangeRateModal(false)
+          }
+        >
+          {t("cancel")}
+        </button>
 
-  <button
-    className="modal-btn primary"
-    onClick={handleAddExchangeRate}
-  >
-    Save
-  </button>
+        <button
+          className="modal-btn primary"
+          onClick={handleAddExchangeRate}
+        >
+          {t("save")}
+        </button>
 
-</div>
+      </div>
 
     </div>
-
   </div>
 )}
+
 {showCustomerModal && (
   <div className="modal-overlay">
     <div className="modal-content">
-      <h3>Add Customer</h3>
+
+      <h3>{t("add_customer")}</h3>
 
       <input
         type="text"
-        placeholder="Customer name"
+        placeholder={t("customer_name")}
         value={newCustomerName}
-        onChange={(e) => setNewCustomerName(e.target.value)}
+        onChange={(e) =>
+          setNewCustomerName(e.target.value)
+        }
       />
 
       <div className="modal-actions">
+
         <button
           className="modal-btn secondary"
-          onClick={() => setShowCustomerModal(false)}
+          onClick={() =>
+            setShowCustomerModal(false)
+          }
         >
-          Cancel
+          {t("cancel")}
         </button>
 
         <button
           className="modal-btn primary"
           onClick={handleAddCustomer}
         >
-          Save
+          {t("save")}
         </button>
+
       </div>
+
     </div>
   </div>
 )}
+
 {showItemModal && (
   <div className="modal-overlay">
     <div className="modal-content">
-      <h3>Add Item</h3>
+
+      <h3>{t("add_item")}</h3>
 
       <input
         type="text"
-        placeholder="Item name"
+        placeholder={t("item_name")}
         value={newItemName}
-        onChange={(e) => setNewItemName(e.target.value)}
+        onChange={(e) =>
+          setNewItemName(e.target.value)
+        }
       />
 
       <input
         type="text"
-        placeholder="Code"
+        placeholder={t("code")}
         value={newItemCode}
-        onChange={(e) => setNewItemCode(e.target.value)}
+        onChange={(e) =>
+          setNewItemCode(e.target.value)
+        }
       />
 
       <input
         type="number"
-        placeholder="Retail price USD"
+        placeholder={t("retail_price_usd")}
         value={newRetailPrice}
-        onChange={(e) => setNewRetailPrice(e.target.value)}
+        onChange={(e) =>
+          setNewRetailPrice(e.target.value)
+        }
       />
 
       <input
         type="number"
-        placeholder="Wholesale price USD"
+        placeholder={t("wholesale_price_usd")}
         value={newWholesalePrice}
-        onChange={(e) => setNewWholesalePrice(e.target.value)}
+        onChange={(e) =>
+          setNewWholesalePrice(e.target.value)
+        }
       />
 
       <div className="modal-actions">
+
         <button
           className="modal-btn secondary"
-          onClick={() => setShowItemModal(false)}
+          onClick={() =>
+            setShowItemModal(false)
+          }
         >
-          Cancel
+          {t("cancel")}
         </button>
 
         <button
           className="modal-btn primary"
           onClick={handleAddItem}
         >
-          Save
+          {t("save")}
         </button>
+
       </div>
+
     </div>
   </div>
 )}
-    </>
-    
-  );
+
+</>
+);
 }
 
 export default SalesPage;

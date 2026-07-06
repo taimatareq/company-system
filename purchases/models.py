@@ -96,4 +96,34 @@ class PurchasePayment(models.Model):
         verbose_name = "Payment"
         verbose_name_plural = "Payments"    
 
+class PurchasePayment(models.Model):
 
+    invoice = models.ForeignKey(
+        PurchaseInvoice,
+        on_delete=models.CASCADE,
+        related_name="payments"
+    )
+
+    payment_date = models.DateTimeField()
+
+    amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2
+    )
+
+    notes = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+
+        return (
+            f"Purchase Payment "
+            f"{self.id}"
+        )

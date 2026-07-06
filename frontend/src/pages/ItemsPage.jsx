@@ -1,6 +1,6 @@
 import { apiFetch } from "../api";
 import { useEffect, useState } from "react";
-
+import { useTranslation } from "react-i18next";
 import {
   FaPlus,
   FaBoxOpen,
@@ -20,6 +20,7 @@ import ItemsTable from "../components/items/ItemsTable.jsx";
 const API_URL = "http://127.0.0.1:8000/api";
 
 function ItemsPage({setPage}) {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -60,7 +61,7 @@ function ItemsPage({setPage}) {
 })
       .catch((err) => {
         console.error(err);
-        toast.error("Failed to fetch items");
+        toast.error(t("failed_to_fetch_items"));
         setLoading(false);
       });
   }, []);
@@ -71,18 +72,18 @@ function ItemsPage({setPage}) {
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm("Delete this item?")) return;
+    if (!window.confirm(t("delete_this_item?"))) return;
 
     fetch(`${API_URL}/items/${id}/`, {
       method: "DELETE",
     })
       .then(() => {
         setItems(items.filter((item) => item.id !== id));
-        toast.success("Item deleted successfully");
+        toast.success(t("item_deleted_successfully"));
       })
       .catch((err) => {
         console.error(err);
-        toast.error("Failed to delete item");
+        toast.error(t("failed_to_delete_item"));
       });
   };
 
@@ -96,7 +97,7 @@ function ItemsPage({setPage}) {
       Number(itemData.retail_tax_rate) < 0 ||
       Number(itemData.retail_tax_rate) > 100
     ) {
-      toast.error("Retail Tax must be between 0% and 100%");
+      toast.error(t("retail_tax_must_be_between_0%_and_100%"));
       return;
     }
 
@@ -118,12 +119,12 @@ function ItemsPage({setPage}) {
             )
           );
 
-          toast.success("Item updated successfully");
+          toast.success(t("item_updated_successfully"));
           resetForm();
         })
         .catch((err) => {
           console.error(err);
-          toast.error("Failed to update item");
+          toast.error(t("failed_to_update_item"));
         });
     } else {
 
@@ -135,20 +136,24 @@ function ItemsPage({setPage}) {
     body: JSON.stringify(itemData),
   })
     .then(async (res) => {
-
       const data = await res.json();
 
-      console.log("STATUS:", res.status);
-      console.log("RESPONSE:", data);
-
       if (!res.ok) {
-        toast.error("Failed to add item");
+        if (data.code) {
+          toast.error(t("item_code_exists"));
+        } else if (data.name) {
+          toast.error(data.name[0]);
+        } else {
+          toast.error(t("failed_to_add_item"));
+        }
+
         return;
       }
 
+      // نجاح الإضافة
       setItems([...items, data]);
-
-      toast.success("Item added successfully");
+      toast.success(t("item_added_successfully"));
+   
 
       resetForm();
 
@@ -212,32 +217,36 @@ function ItemsPage({setPage}) {
   const endIndex = startIndex + itemsPerPage;
 
   const currentItems = filteredItems.slice(startIndex, endIndex);
+  const productsCount = items.filter(
+    (item) => item.item_type === "product").length;
 
+  const servicesCount = items.filter(
+    (item) => item.item_type === "service").length;
   return (
     <>
    
 
         <div className="page-header">
           <div>
-            <h1 className="page-title">Items</h1>
-            <p className="page-subtitle">Manage your products</p>
+            <h1 className="page-title">{t("items")}</h1>
+            <p className="page-subtitle">{t("manage_your_products")}</p>
           </div>
 
           {!showForm && (
             <button className="add-btn" onClick={() => setShowForm(true)}>
               <FaPlus />
-              Add Item
+              {t("add_item")}
             </button>
           )}
         </div>
 
-        <div className="stats-grid">
+        {/* <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon blue">
               <FaBoxes />
             </div>
             <h3>{items.length}</h3>
-            <p>Total Items</p>
+            <p>{t("total_items")}</p>
           </div>
 
           <div className="stat-card">
@@ -250,7 +259,7 @@ function ItemsPage({setPage}) {
                 .reduce((t, i) => t + Number(i.retail_price || 0), 0)
                 .toFixed(2)}
             </h3>
-            <p>Total Retail Value</p>
+            <p>{t("total_retail_value")}</p>
           </div>
 
           <div className="stat-card">
@@ -258,10 +267,42 @@ function ItemsPage({setPage}) {
               <FaFilter />
             </div>
             <h3>{filteredItems.length}</h3>
-            <p>Filtered Items</p>
+            <p>{t("filtered_items")}</p>
           </div>
-        </div>
+        </div> */}
+<div className="stats-grid">
 
+  <div className="stat-card">
+    <div className="stat-icon blue">
+      <FaBoxes />
+    </div>
+
+    <h3>{items.length}</h3>
+
+    <p>{t("total_items")}</p>
+  </div>
+
+  <div className="stat-card">
+    <div className="stat-icon green">
+      <FaBoxOpen />
+    </div>
+
+    <h3>{productsCount}</h3>
+
+    <p>{t("products")}</p>
+  </div>
+
+  <div className="stat-card">
+    <div className="stat-icon purple">
+      <FaWarehouse />
+    </div>
+
+    <h3>{servicesCount}</h3>
+
+    <p>{t("services")}</p>
+  </div>
+
+</div>
         {showForm && (
           <div className="card">
             <ItemForm
@@ -278,7 +319,7 @@ function ItemsPage({setPage}) {
               <FaSearch />
               <input
                 type="text"
-                placeholder="Search items..."
+                placeholder={t("search_items")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -294,10 +335,10 @@ function ItemsPage({setPage}) {
                 })
               }
             >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="az">A-Z</option>
-              <option value="za">Z-A</option>
+              <option value="newest">{t("newest")}</option>
+              <option value="oldest">{t("oldest")}</option>
+              <option value="az">{t("A-Z")}</option>
+              <option value="za">{t("Z-A")}</option>
             </select>
 
             <select
@@ -310,9 +351,9 @@ function ItemsPage({setPage}) {
                 })
               }
             >
-              <option value="all">All Prices</option>
-              <option value="under50">Under $50</option>
-              <option value="over50">Over $50</option>
+              <option value="all">{t("all_prices")}</option>
+              <option value="under50">{t("under_$50")}</option>
+              <option value="over50">{t("over_$50")}</option>
             </select>
 
             <select
@@ -325,9 +366,9 @@ function ItemsPage({setPage}) {
                 })
               }
             >
-              <option value="all">All Taxes</option>
-              <option value="low">Under 10%</option>
-              <option value="high">Above 10%</option>
+              <option value="all">{t("all_taxes")}</option>
+              <option value="low">{t("under_10%")}</option>
+              <option value="high">{t("above_10%")}</option>
             </select>
 
             <button
@@ -339,7 +380,7 @@ function ItemsPage({setPage}) {
                 setTaxFilter({ value: "all", label: "All Taxes" });
               }}
             >
-              Clear
+              {t("clear")}
             </button>
           </div>
         </div>
@@ -361,18 +402,18 @@ function ItemsPage({setPage}) {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
           >
-            Previous
+            {t("previous")}
           </button>
 
           <span>
-            Page {currentPage} of {totalPages}
+            {t("page")} {currentPage} {t("of")} {totalPages}
           </span>
 
           <button
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
-            Next
+            {t("next")}
           </button>
         </div>
         </>

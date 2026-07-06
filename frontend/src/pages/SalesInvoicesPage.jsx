@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
+import { useTranslation } from "react-i18next";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
@@ -7,6 +8,7 @@ function SalesInvoicesPage({
   setPage,
   setSelectedSalesInvoice,
 }) {
+  const { t } = useTranslation();
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,189 +84,163 @@ const currentInvoices =
     endIndex
   );
   return (
-    <>
-      <div className="page-header">
+  <>
+    <div className="page-header">
+      <div>
+        <h1 className="page-title">
+          {t("sales_invoices")}
+        </h1>
 
-        <div>
-          <h1 className="page-title">
-            Sales Invoices
-          </h1>
-
-          <p className="page-subtitle">
-            Manage sales invoices
-          </p>
-        </div>
-
-        <button
-          className="add-btn"
-          onClick={() => setPage("sales")}
-        >
-          Create Invoice
-        </button>
-
+        <p className="page-subtitle">
+          {t("manage_sales_invoices")}
+        </p>
       </div>
-<div className="table-header">
-
-  <div className="search-box">
-    <input
-      type="text"
-      placeholder="Search invoices..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-    />
-  </div>
-
-  <div className="filter-buttons">
-
-    {["all", "paid", "unpaid", "partial"].map((status) => (
 
       <button
-        key={status}
-        className={
-          selectedStatus === status
-            ? "filter-btn active"
-            : "filter-btn"
-        }
-        onClick={() => setSelectedStatus(status)}
+        className="add-btn"
+        onClick={() => setPage("sales")}
       >
-        {status === "all"
-          ? "All Status"
-          : status}
+        {t("create_invoice")}
       </button>
+    </div>
 
-    ))}
-
-  </div>
-<div className="filter-buttons">
-  {["all", "cash", "credit"].map((type) => (
-    <button
-      key={type}
-      className={
-        selectedPaymentType === type
-          ? "filter-btn active"
-          : "filter-btn"
-      }
-      onClick={() => setSelectedPaymentType(type)}
-    >
-      {type === "all" ? "All Payments" : type}
-    </button>
-  ))}
-</div>
-</div>
-      <div className="card table-wrapper">
-
-        {loading ? (
-
-          <p>Loading invoices...</p>
-
-        ) : (
-
-          <table>
-
-            <thead>
-
-              <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Warehouse</th>
-                <th>Date</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th>Total USD</th>
-                <th>Total SYP</th>
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {currentInvoices.map((invoice) => (
-                <tr key={invoice.id}>
-
-                  <td>
-                    <span
-                      className="invoice-link"
-                      onClick={() => {
-                        setSelectedSalesInvoice(invoice.id);
-                        localStorage.setItem("selectedSalesInvoice", invoice.id);
-                        setPage("sales-invoice-detail");
-                      }}
-                    >
-                      SI-{String(invoice.id).padStart(4, "0")}
-                    </span>
-                  </td>
-
-                  <td>
-                    {invoice.customer_name}
-                  </td>
-
-                  <td>
-                    {invoice.warehouse_name}
-                  </td>
-                  <td>
-                    {
-                      new Date(
-                        invoice.invoice_date
-                      ).toLocaleDateString()
-                    }
-                  </td>
-                  <td>
-                    {invoice.payment_type}
-                  </td>
-
-                  <td>
-                    {invoice.status}
-                  </td>
-
-                  <td>
-                    {invoice.total_amount_usd}
-                  </td>
-
-                  <td>
-                    {invoice.total_amount_syp}
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        )}
-<div className="pagination">
-
-  <button
-    onClick={() =>
-      setCurrentPage(currentPage - 1)
-    }
-    disabled={currentPage === 1}
-  >
-    Previous
-  </button>
-
-  <span>
-    Page {currentPage} of{" "}
-    {totalPages || 1}
-  </span>
-
-  <button
-    onClick={() =>
-      setCurrentPage(currentPage + 1)
-    }
-    disabled={
-      currentPage === totalPages ||
-      totalPages === 0
-    }
-  >
-    Next
-  </button>
-
-</div>
+    <div className="table-header">
+      <div className="search-box">
+        <input
+          type="text"
+          placeholder={t("search_invoices")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
-    </>
-  );
+
+      <div className="filter-buttons">
+        {["all", "paid", "unpaid", "partial"].map((status) => (
+          <button
+            key={status}
+            className={
+              selectedStatus === status
+                ? "filter-btn active"
+                : "filter-btn"
+            }
+            onClick={() => setSelectedStatus(status)}
+          >
+            {status === "all"
+              ? t("all_status")
+              : t(status)}
+          </button>
+        ))}
+      </div>
+
+      <div className="filter-buttons">
+        {["all", "cash", "credit"].map((type) => (
+          <button
+            key={type}
+            className={
+              selectedPaymentType === type
+                ? "filter-btn active"
+                : "filter-btn"
+            }
+            onClick={() => setSelectedPaymentType(type)}
+          >
+            {type === "all"
+              ? t("all_payments")
+              : t(type)}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="card table-wrapper">
+      {loading ? (
+        <p>{t("loading_invoices")}</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>{t("invoice")}</th>
+              <th>{t("customer")}</th>
+              <th>{t("warehouse")}</th>
+              <th>{t("date")}</th>
+              <th>{t("payment")}</th>
+              <th>{t("status")}</th>
+              <th>{t("total_usd")}</th>
+              <th>{t("total_syp")}</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {currentInvoices.map((invoice) => (
+              <tr key={invoice.id}>
+                <td>
+                  <span
+                    className="invoice-link"
+                    onClick={() => {
+                      setSelectedSalesInvoice(invoice.id);
+                      localStorage.setItem(
+                        "selectedSalesInvoice",
+                        invoice.id
+                      );
+                      setPage("sales-invoice-detail");
+                    }}
+                  >
+                    SI-{String(invoice.id).padStart(4, "0")}
+                  </span>
+                </td>
+
+                <td>{invoice.customer_name}</td>
+
+                <td>{invoice.warehouse_name}</td>
+
+                <td>
+                  {new Date(
+                    invoice.invoice_date
+                  ).toLocaleDateString()}
+                </td>
+
+                <td>{t(invoice.payment_type)}</td>
+
+                <td>{t(invoice.status)}</td>
+
+                <td>{invoice.total_amount_usd}</td>
+
+                <td>{invoice.total_amount_syp}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div className="pagination">
+        <button
+          onClick={() =>
+            setCurrentPage(currentPage - 1)
+          }
+          disabled={currentPage === 1}
+        >
+          {t("previous")}
+        </button>
+
+        <span>
+          {t("page")} {currentPage} {t("of")}{" "}
+          {totalPages || 1}
+        </span>
+
+        <button
+          onClick={() =>
+            setCurrentPage(currentPage + 1)
+          }
+          disabled={
+            currentPage === totalPages ||
+            totalPages === 0
+          }
+        >
+          {t("next")}
+        </button>
+      </div>
+    </div>
+  </>
+);
 }
 
 export default SalesInvoicesPage;
