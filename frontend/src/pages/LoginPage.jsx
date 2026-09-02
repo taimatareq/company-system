@@ -104,13 +104,19 @@ function LoginPage({ onLogin }) {
 
     <div className="login-page">
 
-      <div className="login-card">
+      <form
+  className="login-card"
+  onSubmit={(e) => {
+    e.preventDefault();
+    handleLogin();
+  }}
+>
 
-        <div className="login-logo">
+        {/* <div className="login-logo">
 
           <FaBoxOpen />
 
-        </div>
+        </div> */}
 
         <h1 className="login-title">
           ERP System
@@ -172,7 +178,7 @@ function LoginPage({ onLogin }) {
 
         </button>
 
-      </div>
+     </form>
 
     </div>
 

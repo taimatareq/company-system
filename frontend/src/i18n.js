@@ -347,6 +347,7 @@ barcode_generated: "Barcode generated successfully",
 barcode_exists: "Barcode already exists",
 print: "Print",
 scan_barcode: "Scan Barcode",
+logout: "Logout",
 item_not_found: "Item not found",
 
 
@@ -356,6 +357,7 @@ item_not_found: "Item not found",
       ar: {
         translation: {
           notifications: "الإشعارات",
+          logout: "تسجيل الخروج",
           scan_barcode: "مسح الباركود",
 item_not_found: "المادة غير موجودة",
           print: "طباعة",

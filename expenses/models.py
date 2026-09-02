@@ -22,7 +22,7 @@ class Expense(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="created_%(class)ss"
+        related_name="created_expenses"
     )
     def __str__(self):
         return f"{self.category.name} - {self.amount}"

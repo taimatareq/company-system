@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../../api"; 
+
 function Layout({ page, setPage, onLogout, children }) {
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -235,9 +236,9 @@ setPage(
 </div>
 </div>
 
-        <button className="sidebar-logout-btn" onClick={onLogout}>
-          Logout
-        </button>
+      <button className="logout-btn" onClick={onLogout}>
+  {t("logout")}
+</button>
       </aside>
 
       <main className="main">{children}</main>

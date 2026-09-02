@@ -12,7 +12,7 @@ class Damage(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="created_%(class)ss"
+        related_name="created_damages"
     )
     is_applied = models.BooleanField(default=False)
     def __str__(self):
