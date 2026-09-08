@@ -1,12 +1,26 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { apiFetch } from "../api";
 function AdministrationPage() {
 const { t } = useTranslation();
+const [currentUser, setCurrentUser] = useState(null);
+
+useEffect(() => {
+  apiFetch("/users/me/")
+    .then((res) => res.json())
+    .then((data) => setCurrentUser(data))
+    .catch((error) => console.error(error));
+}, []);
 const cards = [
 
-{
-title:t("users"),
-page:"users"
-},
+...(currentUser?.is_staff || currentUser?.is_superuser
+  ? [
+      {
+        title: t("users"),
+        page: "users",
+      },
+    ]
+  : []),
 
 {
 title:t("branches"),

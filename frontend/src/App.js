@@ -33,6 +33,7 @@ import InventoryReportPage from "./pages/InventoryReportPage";
 import CustomerStatementPage from "./pages/CustomerStatementPage";
 import SupplierStatementPage from "./pages/SupplierStatementPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import UsersPage from "./pages/UsersPage";  
 function App() {
   
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -89,6 +90,7 @@ function App() {
         {page === "customer-debts" && (<CustomerDebtsPage />)}
         {page === "supplier-debts" && (<SupplierDebtsPage />)}
         {page === "administration" && <AdministrationPage />}
+        {page === "users" && <UsersPage setPage={setPage} />}
         {page==="branches"&&<BranchesPage/>}
         {page === "warehouses" && <WarehousesPage />}
         {page === "pos" && <POSPage />}
