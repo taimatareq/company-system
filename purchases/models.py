@@ -76,11 +76,6 @@ class PurchaseInvoiceItem(models.Model):
         verbose_name_plural = "Invoice Items"    
 class PurchasePayment(models.Model):
 
-    PAYMENT_METHODS = [
-        ('cash', 'Cash'),
-        ('credit', 'Credit'),
-    ]
-
     invoice = models.ForeignKey(
         PurchaseInvoice,
         on_delete=models.CASCADE,
@@ -92,11 +87,6 @@ class PurchasePayment(models.Model):
     amount = models.DecimalField(
         max_digits=14,
         decimal_places=2
-    )
-
-    payment_method = models.CharField(
-        max_length=10,
-        choices=PAYMENT_METHODS
     )
 
     notes = models.CharField(
@@ -115,34 +105,10 @@ class PurchasePayment(models.Model):
     class Meta:
         verbose_name = "Purchase Payment"
         verbose_name_plural = "Purchase Payments"
-# class PurchasePayment(models.Model):
 
-#     invoice = models.ForeignKey(
-#         PurchaseInvoice,
-#         on_delete=models.CASCADE,
-#         related_name="payments"
-#     )
+    def __str__(self):
+        return f"Purchase Payment {self.id} - Invoice {self.invoice.id}"
 
-#     payment_date = models.DateTimeField()
-
-#     amount = models.DecimalField(
-#         max_digits=14,
-#         decimal_places=2
-#     )
-
-#     notes = models.CharField(
-#         max_length=255,
-#         blank=True,
-#         null=True
-#     )
-
-#     created_at = models.DateTimeField(
-#         auto_now_add=True
-#     )
-
-#     def __str__(self):
-
-#         return (
-#             f"Purchase Payment "
-#             f"{self.id}"
-#         )
+    class Meta:
+        verbose_name = "Purchase Payment"
+        verbose_name_plural = "Purchase Payments"
