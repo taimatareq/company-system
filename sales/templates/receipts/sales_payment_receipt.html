@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Receipt</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 40px;
+      color: #111827;
+    }
+
+    .receipt {
+      max-width: 700px;
+      margin: auto;
+      border: 1px solid #e5e7eb;
+      padding: 30px;
+      border-radius: 12px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+      padding-bottom: 8px;
+    }
+
+    .total {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    @media print {
+      button {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="receipt">
+    <h1>Payment Receipt</h1>
+
+    <div class="row">
+      <span>Receipt No</span>
+      <strong>SR-{{ payment.id|stringformat:"04d" }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Date</span>
+      <strong>{{ payment.payment_date }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Invoice</span>
+      <strong>SI-{{ invoice.id|stringformat:"04d" }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Customer</span>
+      <strong>{{ invoice.customer.name }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Invoice Total</span>
+      <strong>${{ invoice.total_amount_usd }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Payment Amount</span>
+      <strong>${{ payment.amount }}</strong>
+    </div>
+
+    <div class="row">
+      <span>Total Paid</span>
+      <strong>${{ total_paid }}</strong>
+    </div>
+
+    <div class="row total">
+      <span>Remaining</span>
+      <strong>${{ remaining }}</strong>
+    </div>
+
+    <br />
+
+    <button onclick="window.print()">Print</button>
+  </div>
+</body>
+</html>

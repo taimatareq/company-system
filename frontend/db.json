@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "id": "1",
+      "name": "Oil",
+      "code": "011",
+      "retail_price": 15,
+      "retail_tax_rate": 5,
+      "wholesale_price": 15,
+      "wholesale_tax_rate": 3
+    },
+    {
+      "id": "2",
+      "name": "Rice",
+      "code": "022",
+      "retail_price": 30,
+      "retail_tax_rate": 8,
+      "wholesale_price": 25,
+      "wholesale_tax_rate": 5
+    },
+    {
+      "id": "3",
+      "name": "Sugar",
+      "code": "033",
+      "retail_price": 20,
+      "retail_tax_rate": 6,
+      "wholesale_price": 18,
+      "wholesale_tax_rate": 4
+    },
+    {
+      "id": "4",
+      "name": "Tea",
+      "code": "044",
+      "retail_price": 12,
+      "retail_tax_rate": 5,
+      "wholesale_price": 10,
+      "wholesale_tax_rate": 3
+    },
+    {
+      "id": "5",
+      "name": "Coffee",
+      "code": "055",
+      "retail_price": 40,
+      "retail_tax_rate": 10,
+      "wholesale_price": 35,
+      "wholesale_tax_rate": 7
+    },
+    {
+      "id": "6",
+      "name": "Milk",
+      "code": "066",
+      "retail_price": 18,
+      "retail_tax_rate": 4,
+      "wholesale_price": 15,
+      "wholesale_tax_rate": 2
+    },
+    {
+      "id": "7",
+      "name": "Cheese",
+      "code": "077",
+      "retail_price": 55,
+      "retail_tax_rate": 12,
+      "wholesale_price": 48,
+      "wholesale_tax_rate": 9
+    },
+    {
+      "id": "8",
+      "name": "Butter",
+      "code": "088",
+      "retail_price": 25,
+      "retail_tax_rate": 7,
+      "wholesale_price": 20,
+      "wholesale_tax_rate": 5
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
