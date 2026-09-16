@@ -7,7 +7,7 @@ import {
 } from "react-icons/fa";
 
 import toast from "react-hot-toast";
-
+import { GoogleLogin } from "@react-oauth/google";
 const API_URL = "http://127.0.0.1:8000/api";
 
 function LoginPage({ onLogin }) {
@@ -119,8 +119,8 @@ function LoginPage({ onLogin }) {
         </div> */}
 
         <h1 className="login-title">
-          ERP System
-        </h1>
+  EMESA BUSINESS
+</h1>
 
         <p className="login-subtitle">
           Sign in to continue
@@ -177,7 +177,75 @@ function LoginPage({ onLogin }) {
             : "Login"}
 
         </button>
+<div style={{ margin: "20px 0", textAlign: "center" }}>
+  <span>OR</span>
+</div>
 
+<GoogleLogin
+  onSuccess={async (credentialResponse) => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${API_URL}/users/google-login/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            credential: credentialResponse.credential,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Google backend error:", data);
+        toast.error(
+          data.detail || "Google login failed"
+        );
+        return;
+      }
+
+      localStorage.setItem(
+        "access_token",
+        data.access
+      );
+
+      localStorage.setItem(
+        "refresh_token",
+        data.refresh
+      );
+
+      toast.success(
+        "Login successful"
+      );
+
+      onLogin();
+
+    } catch (error) {
+      console.error(
+        "Google login error:",
+        error
+      );
+
+      toast.error(
+        "Google login failed"
+      );
+
+    } finally {
+      setLoading(false);
+    }
+  }}
+
+  onError={() => {
+    toast.error(
+      "Google login failed"
+    );
+  }}
+/>
      </form>
 
     </div>
