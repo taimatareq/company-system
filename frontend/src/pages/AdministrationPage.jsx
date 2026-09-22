@@ -12,8 +12,16 @@ useEffect(() => {
     .catch((error) => console.error(error));
 }, []);
 const cards = [
-
-...(currentUser?.is_staff || currentUser?.is_superuser
+  // ...(currentUser?.is_superuser
+  // ? [
+  //     {
+  //       title: t("organizations"),
+  //       page: "organizations",
+  //     },
+  //   ]
+  // : []),
+...(currentUser?.is_superuser ||
+currentUser?.role === "company_admin"
   ? [
       {
         title: t("users"),
@@ -21,7 +29,6 @@ const cards = [
       },
     ]
   : []),
-
 {
 title:t("branches"),
 page:"branches"

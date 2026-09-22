@@ -6,6 +6,7 @@ import InventoryPage from "./pages/InventoryPage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import PurchaseInvoicesPage from "./pages/PurchaseInvoicesPage.jsx";
+import { apiFetch } from "./api";
 import { Toaster } from "react-hot-toast";
 import "./styles/app.css";
 import PurchaseInvoiceDetailPage from "./pages/PurchaseInvoiceDetailPage.jsx";
@@ -20,6 +21,7 @@ import AdministrationPage from "./pages/AdministrationPage";
 import SupplierDebtsPage from "./pages/SupplierDebtsPage";
 import BranchesPage from"./pages/BranchesPage";
 import WarehousesPage from "./pages/WarehousesPage";
+import SystemAdministrationPage from "./pages/SystemAdministrationPage";
 import POSPage from "./pages/POSPage";
 import ExchangeRatesPage
 from "./pages/ExchangeRatesPage";
@@ -34,12 +36,16 @@ import CustomerStatementPage from "./pages/CustomerStatementPage";
 import SupplierStatementPage from "./pages/SupplierStatementPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";  
+import ProfilePage from "./pages/ProfilePage";
 function App() {
-  
+  console.log(
+  "TOKEN BEFORE APP:",
+  localStorage.getItem("access_token")
+);
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("access_token")
   );
-  
+  const [currentUser, setCurrentUser] = useState(null);
   const [page, setPage] = useState(
   localStorage.getItem("page")
   || "dashboard"
@@ -50,14 +56,50 @@ function App() {
   const [selectedSalesInvoice, setSelectedSalesInvoice] =
   useState(localStorage.getItem("selectedSalesInvoice"));
   
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    setIsLoggedIn(false);
-  };
+ const handleLogout = () => {
+  localStorage.removeItem(
+    "access_token"
+  );
+
+  localStorage.removeItem(
+    "refresh_token"
+  );
+
+  localStorage.removeItem(
+    "page"
+  );
+
+  setPage("dashboard");
+  setIsLoggedIn(false);
+  setCurrentUser(null);
+};
   useEffect(() => {
     localStorage.setItem("page", page);
   }, [page]);
+  useEffect(() => {
+  if (!isLoggedIn) return;
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await apiFetch("/users/me/");
+
+      if (!response.ok) {
+        console.error("Failed to load current user");
+        return;
+      }
+
+      const data = await response.json();
+
+      console.log("CURRENT USER:", data);
+
+      setCurrentUser(data);
+    } catch (error) {
+      console.error("Current user error:", error);
+    }
+  };
+
+  loadCurrentUser();
+}, [isLoggedIn]);
   if (!isLoggedIn) {
     return (
       <>
@@ -75,6 +117,7 @@ function App() {
         page={page}
         setPage={setPage}
         onLogout={handleLogout}
+        currentUser={currentUser}
       >
         {page === "items" && <ItemsPage />}
         {page === "inventory" && <InventoryPage />}
@@ -89,6 +132,7 @@ function App() {
         {page === "purchase-payments" && (<PurchasePaymentsPage />)}
         {page === "customer-debts" && (<CustomerDebtsPage />)}
         {page === "supplier-debts" && (<SupplierDebtsPage />)}
+        {page === "system-administration" && (<SystemAdministrationPage setPage={setPage} />)}
         {page === "administration" && <AdministrationPage />}
         {page === "users" && <UsersPage setPage={setPage} />}
         {page==="branches"&&<BranchesPage/>}
@@ -105,6 +149,7 @@ function App() {
         {page === "customer-statement" && <CustomerStatementPage />}
         {page === "supplier-statement" && <SupplierStatementPage />}
         {page === "notifications" &&<NotificationsPage />}
+        {page === "profile" && <ProfilePage />}
         
 
       </Layout>

@@ -272,8 +272,42 @@ oldest_update: "Oldest Update",
 clear_filters: "Clear Filters",
 total_items: "Total Items",
 total_quantity: "Total Quantity",
+manage_users: "Manage system users",
+add_user: "Add User",
+edit_user: "Edit User",
+update_user_profile: "Update user information and profile",
+
+username: "Username",
+first_name: "First Name",
+last_name: "Last Name",
+email: "Email",
+phone: "Phone",
+
+profile_photo: "Profile Photo",
+change_image: "Change Image",
+remove_image: "Remove Image",
+
+active: "Active",
+inactive: "Inactive",
+activate: "Activate",
+deactivate: "Deactivate",
+
+current_user: "Current User",
+
+save_changes: "Save Changes",
+
+no_email: "No email",
+no_phone: "No phone",
+
+user_updated_successfully: "User updated successfully",
+failed_to_update_user: "Failed to update user",
+user_created_successfully: "User created successfully",
+failed_to_create_user: "Failed to create user",
 last_update: "Last Update",
 no_inventory_data_found: "No inventory data found",
+auth_provider: "Registration Method",
+google_account: "Google",
+local_account: "Email & Password",
 low: "Low Stock",
 out: "Out of Stock",
 notifications: "Notifications",
@@ -292,6 +326,11 @@ all_suppliers: "All Suppliers",
 total_purchases_usd: "Total Purchases USD",
 total_purchases_syp: "Total Purchases SYP",
 operational_reports: "Operational Reports",
+company_admin: "Company Admin",
+normal_user: "User",
+user_role: "User Role",
+company_admin: "Company Admin",
+normal_user: "User",
 financial_reports: "Financial Reports",
 
 sales_report: "Sales Report",
@@ -347,8 +386,31 @@ barcode_generated: "Barcode generated successfully",
 barcode_exists: "Barcode already exists",
 print: "Print",
 scan_barcode: "Scan Barcode",
+enter_username: "Enter username",
+enter_password: "Enter password",
+enter_email: "Enter email",
+
 logout: "Logout",
 item_not_found: "Item not found",
+create: "Create",
+// English
+user_created_successfully: "User created successfully",
+failed_to_create_user: "Failed to create user",
+// English
+user_created: "User created successfully",
+user_created_description: "The user has been added to your organization.",
+user_created: "User created successfully",
+user_created_description: "The user has been added to your organization.",
+// English
+system_admin: "System Admin",
+done: "Done",
+// English
+organizations: "Organizations",
+// English
+system_administration: "System Administration",
+// English
+manage_system_administration: "Manage organizations and system settings",
+organizations: "Organizations",
 
 
         },
@@ -357,16 +419,41 @@ item_not_found: "Item not found",
       ar: {
         translation: {
           notifications: "الإشعارات",
+          // Arabic
+manage_system_administration: "إدارة المؤسسات وإعدادات النظام",
+organizations: "المؤسسات",
+          // Arabic
+system_administration: "إدارة النظام",
+          // Arabic
+organizations: "المؤسسات",
+          // Arabic
+system_admin: "مدير النظام",
+          user_created: "تم إنشاء المستخدم بنجاح",
+user_created_description: "تمت إضافة المستخدم إلى مؤسستك.",
+done: "تم",
+          // Arabic
+user_created: "تم إنشاء المستخدم بنجاح",
+user_created_description: "تمت إضافة المستخدم إلى مؤسستك.",
+          
+// Arabic
+user_created_successfully: "تمت إضافة المستخدم بنجاح",
+failed_to_create_user: "فشلت إضافة المستخدم",
+
           logout: "تسجيل الخروج",
+          create: "إضافة",
           scan_barcode: "مسح الباركود",
 item_not_found: "المادة غير موجودة",
           print: "طباعة",
+          enter_email: "أدخل البريد الإلكتروني",
+
           
           barcode: "الباركود",
 print_barcode: "طباعة الباركود",
 scan_barcode: "مسح الباركود",
 barcode_generated: "تم إنشاء الباركود بنجاح",
 barcode_exists: "الباركود مستخدم بالفعل",
+enter_password: "أدخل كلمة المرور",
+enter_username: "أدخل اسم المستخدم",
           products: "المنتجات",
 services: "الخدمات",
           sales_invoice_created: "تم إنشاء فاتورة البيع",
@@ -601,6 +688,40 @@ invoice_total: "إجمالي الفاتورة",
 new_payment_amount: "مبلغ الدفعة الجديدة",
 payment_date: "تاريخ الدفع",
 notes: "ملاحظات",
+manage_users: "إدارة مستخدمي النظام",
+add_user: "إضافة مستخدم",
+edit_user: "تعديل المستخدم",
+update_user_profile: "تعديل بيانات المستخدم والملف الشخصي",
+
+username: "اسم المستخدم",
+first_name: "الاسم الأول",
+last_name: "اسم العائلة",
+email: "البريد الإلكتروني",
+phone: "رقم الهاتف",
+
+profile_photo: "الصورة الشخصية",
+change_image: "تغيير الصورة",
+remove_image: "حذف الصورة",
+
+active: "نشط",
+inactive: "غير نشط",
+activate: "تفعيل",
+deactivate: "تعطيل",
+
+current_user: "المستخدم الحالي",
+user_role: "نوع المستخدم",
+company_admin: "مدير المؤسسة",
+normal_user: "مستخدم عادي",
+
+save_changes: "حفظ التغييرات",
+
+no_email: "لا يوجد بريد إلكتروني",
+no_phone: "لا يوجد رقم هاتف",
+
+user_updated_successfully: "تم تحديث بيانات المستخدم بنجاح",
+failed_to_update_user: "فشل تحديث بيانات المستخدم",
+user_created_successfully: "تمت إضافة المستخدم بنجاح",
+failed_to_create_user: "فشلت إضافة المستخدم",
 save_payment: "حفظ الدفعة",
 sales_report: "تقرير المبيعات",
 sales_analytics: "تحليلات المبيعات",
@@ -615,6 +736,11 @@ partial: "جزئي",
 unpaid: "غير مدفوع",
 total_sales_usd: "إجمالي المبيعات بالدولار",
 total_sales_syp: "إجمالي المبيعات بالليرة",
+company_admin: "مدير المؤسسة",
+normal_user: "مستخدم عادي",
+auth_provider: "طريقة التسجيل",
+google_account: "Google",
+local_account: "البريد وكلمة المرور",
 paid_usd: "المدفوع بالدولار",
 remaining_usd: "المتبقي بالدولار",
 invoices: "عدد الفواتير",

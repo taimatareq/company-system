@@ -133,15 +133,16 @@ function LoginPage({ onLogin }) {
           <FaUser />
 
           <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) =>
-              setUsername(
-                e.target.value
-              )
-            }
-          />
+  id="username"
+  name="username"
+  type="text"
+  autoComplete="username"
+  placeholder="Username"
+  value={username}
+  onChange={(e) =>
+    setUsername(e.target.value)
+  }
+/>
 
         </div>
 
@@ -152,23 +153,24 @@ function LoginPage({ onLogin }) {
           <FaLock />
 
           <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
-          />
+  id="password"
+  name="password"
+  type="password"
+  autoComplete="current-password"
+  placeholder="Password"
+  value={password}
+  onChange={(e) =>
+    setPassword(e.target.value)
+  }
+/>
 
         </div>
 
         {/* BUTTON */}
 
         <button
+          type="submit"
           className="login-btn"
-          onClick={handleLogin}
           disabled={loading}
         >
 
@@ -183,6 +185,10 @@ function LoginPage({ onLogin }) {
 
 <GoogleLogin
   onSuccess={async (credentialResponse) => {
+    console.log(
+  "GOOGLE SUCCESS",
+  credentialResponse
+);
     try {
       setLoading(true);
 
@@ -198,7 +204,10 @@ function LoginPage({ onLogin }) {
           }),
         }
       );
-
+      console.log(
+  "GOOGLE BACKEND STATUS:",
+  response.status
+);
       const data = await response.json();
 
       if (!response.ok) {
@@ -241,10 +250,14 @@ function LoginPage({ onLogin }) {
   }}
 
   onError={() => {
-    toast.error(
-      "Google login failed"
-    );
-  }}
+  console.log(
+    "GOOGLE LOGIN ERROR"
+  );
+
+  toast.error(
+    "Google login failed"
+  );
+}}
 />
      </form>
 

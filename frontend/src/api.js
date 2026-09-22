@@ -10,20 +10,36 @@ export async function apiFetch(
       "access_token"
     );
 
+  const isFormData =
+    options.body instanceof FormData;
+
+  const buildHeaders = (
+    accessToken
+  ) => {
+
+    const headers = {
+      ...(options.headers || {}),
+
+      Authorization:
+        `Bearer ${accessToken}`,
+    };
+
+    if (!isFormData) {
+      headers["Content-Type"] =
+        "application/json";
+    }
+
+    return headers;
+  };
+
   let response = await fetch(
     `${API_URL}${endpoint}`,
     {
       ...options,
 
-      headers: {
-        ...(options.headers || {}),
-
-        Authorization:
-          `Bearer ${token}`,
-
-        "Content-Type":
-          "application/json",
-      },
+      headers: buildHeaders(
+        token
+      ),
     }
   );
 
@@ -33,7 +49,7 @@ export async function apiFetch(
       localStorage.getItem(
         "refresh_token"
       );
-    console.log("REFRESH TOKEN:", refresh);
+
     const refreshResponse =
       await fetch(
         `${API_URL}/token/refresh/`,
@@ -82,15 +98,9 @@ export async function apiFetch(
       {
         ...options,
 
-        headers: {
-          ...(options.headers || {}),
-
-          Authorization:
-            `Bearer ${token}`,
-
-          "Content-Type":
-            "application/json",
-        },
+        headers: buildHeaders(
+          token
+        ),
       }
     );
   }

@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../../api"; 
 
-function Layout({ page, setPage, onLogout, children }) {
+function Layout({ page, setPage, onLogout, currentUser, children }) {
   const [notificationCount, setNotificationCount] = useState(0);
-
   const { t, i18n } = useTranslation();
-  useState(0);
 useEffect(() => {
   apiFetch("/notifications/")
     .then((res) => res.json())
@@ -24,34 +22,86 @@ useEffect(() => {
     <div className="app">
       
       <aside className="sidebar">
-        
-        <h2 className="logo">ERP System</h2>
-<div className="language-switcher">
-  <span>EN</span>
 
-  <label className="lang-switch">
-    <input
-      type="checkbox"
-      checked={i18n.language === "ar"}
-      onChange={() => {
-        const lang =
-          i18n.language === "ar"
-            ? "en"
-            : "ar";
+  <h2 className="logo">
+    EMESA BUSINESS
+  </h2>
 
-        i18n.changeLanguage(lang);
-        localStorage.setItem("lang", lang);
+  {currentUser && (
+    <div className="user-profile-box" onClick={() => setPage("profile")}>
 
-        document.body.dir =
-          lang === "ar" ? "rtl" : "ltr";
-      }}
-    />
+      {currentUser.profile_image ? (
+        <img
+    src={`${currentUser.profile_image}?v=${Date.now()}`}
+    alt="Profile"
+    className="user-profile-image"
+  />
+      ) : (
+        <div className="user-profile-placeholder">
+          {currentUser.first_name
+            ? currentUser.first_name.charAt(0).toUpperCase()
+            : currentUser.username.charAt(0).toUpperCase()}
+        </div>
+      )}
 
-    <span className="lang-slider"></span>
-  </label>
+      <div className="user-profile-info">
 
-  <span>AR</span>
-</div>
+        <div className="user-profile-name">
+          {currentUser.first_name || currentUser.username}
+          {currentUser.last_name
+            ? ` ${currentUser.last_name}`
+            : ""}
+        </div>
+{currentUser.organization && (
+  <div className="user-organization">
+    {currentUser.organization.name}
+  </div>
+)}
+
+{currentUser.role && (
+  <div className="user-role">
+    {currentUser.role === "company_admin"
+      ? t("company_admin")
+      : t("normal_user")}
+  </div>
+)}
+        {/* <div className="user-profile-email">
+          {currentUser.email}
+        </div> */}
+
+      </div>
+
+    </div>
+  )}
+
+  <div className="language-switcher">
+
+    <span>EN</span>
+
+    <label className="lang-switch">
+      <input
+        type="checkbox"
+        checked={i18n.language === "ar"}
+        onChange={() => {
+          const lang =
+            i18n.language === "ar"
+              ? "en"
+              : "ar";
+
+          i18n.changeLanguage(lang);
+          localStorage.setItem("lang", lang);
+
+          document.body.dir =
+            lang === "ar" ? "rtl" : "ltr";
+        }}
+      />
+
+      <span className="lang-slider"></span>
+    </label>
+
+    <span>AR</span>
+
+  </div>
         <div className="menu">
           <div
   className={
@@ -75,7 +125,20 @@ useEffect(() => {
     className={page === "dashboard" ? "menu-item active" : "menu-item"}
     onClick={() => setPage("dashboard")}
   >
-<span>{t("dashboard")}</span>  </div>
+<span>{t("dashboard")}</span>  
+</div>
+{currentUser?.is_superuser && (
+  <div
+    className={
+      page === "system-administration"
+        ? "menu-item active"
+        : "menu-item"
+    }
+    onClick={() => setPage("system-administration")}
+  >
+    <span>{t("system_administration")}</span>
+  </div>
+)}
   <div
 className={
 page==="administration"
@@ -96,6 +159,7 @@ setPage(
 
 
 </div>
+
   <div
     className={page === "items" ? "menu-item active" : "menu-item"}
     onClick={() => setPage("items")}

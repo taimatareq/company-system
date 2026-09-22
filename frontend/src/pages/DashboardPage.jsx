@@ -349,7 +349,7 @@ return (
         </ResponsiveContainer>
       </div>
 
-      <div className="card dashboard-chart-card">
+      {/* <div className="card dashboard-chart-card">
         <h2>{t("top_selling_items")}</h2>
 
         <ResponsiveContainer width="100%" height={300}>
@@ -364,7 +364,7 @@ return (
             />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </div> */}
 
 <div className="card dashboard-chart-card">
 

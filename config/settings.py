@@ -62,6 +62,8 @@ INSTALLED_APPS = [
     'notifications',
     'services',
     'users',
+    'organizations',
+
     ]
 
 MIDDLEWARE = [
@@ -175,3 +177,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
