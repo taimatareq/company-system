@@ -81,7 +81,6 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
     def validate(self, data):
         payment_type = data.get("payment_type")
         due_date = data.get("due_date")
-
         if payment_type == "credit" and not due_date:
             raise serializers.ValidationError({
                 "due_date": "Due date is required for credit invoices."
@@ -92,6 +91,7 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop("items")
 
+        validated_data["is_applied"] = True
         invoice = SalesInvoice.objects.create(**validated_data)
 
         total_usd = 0

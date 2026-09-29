@@ -43,6 +43,7 @@ class PurchaseService:
             total_amount=Decimal("0.00"),
             total_amount_usd=Decimal("0.00"),
             total_amount_syp=Decimal("0.00"),
+            is_applied=True,
         )
 
         total_usd = Decimal("0.00")

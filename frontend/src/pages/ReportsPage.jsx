@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-function ReportsPage() {
+function ReportsPage({ setPage }) {
   const { t } = useTranslation();
 
   const reportGroups = [
@@ -25,6 +25,12 @@ function ReportsPage() {
           icon: "📊",
           page: "inventory-report",
         },
+       {
+          title: "average_price_report",
+          desc: "average_price_report_desc",
+          icon: "📉",
+         page: "average-price-report",
+},
       ],
     },
     {
@@ -85,7 +91,6 @@ function ReportsPage() {
                 {t(report.desc)}
               </div>
 
-              <div className="report-arrow">→</div>
             </div>
           ))}
         </div>

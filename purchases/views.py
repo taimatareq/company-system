@@ -257,3 +257,155 @@ def receivables_payables(request):
         purchase_total
 
     })
+
+from django.db.models import F, Min, Max, Count, DecimalField, ExpressionWrapper
+from django.utils.dateparse import parse_date
+
+
+@api_view(["GET"])
+def purchase_average_price_report(request):
+    item_id = request.GET.get("item")
+    supplier_id = request.GET.get("supplier")
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+
+    queryset = (
+        PurchaseInvoiceItem.objects
+        .select_related("item", "invoice", "invoice__supplier")
+        .filter(invoice__is_applied=True)
+    )
+
+    # فلترة حسب المادة
+    if item_id:
+        queryset = queryset.filter(item_id=item_id)
+
+    # فلترة حسب المورد
+    if supplier_id:
+        queryset = queryset.filter(
+            invoice__supplier_id=supplier_id
+        )
+
+    # فلترة من تاريخ
+    if date_from:
+        parsed_from = parse_date(date_from)
+
+        if not parsed_from:
+            return Response(
+                {"detail": "Invalid date_from"},
+                status=400
+            )
+
+        queryset = queryset.filter(
+            invoice__invoice_date__date__gte=parsed_from
+        )
+
+    # فلترة إلى تاريخ
+    if date_to:
+        parsed_to = parse_date(date_to)
+
+        if not parsed_to:
+            return Response(
+                {"detail": "Invalid date_to"},
+                status=400
+            )
+
+        queryset = queryset.filter(
+            invoice__invoice_date__date__lte=parsed_to
+        )
+
+    queryset = queryset.annotate(
+        total_line_usd=ExpressionWrapper(
+            F("quantity") * F("unit_cost_usd"),
+            output_field=DecimalField(
+                max_digits=28,
+                decimal_places=4
+            )
+        ),
+        total_line_syp=ExpressionWrapper(
+            F("quantity") * F("unit_cost_syp"),
+            output_field=DecimalField(
+                max_digits=28,
+                decimal_places=4
+            )
+        ),
+    )
+
+    rows = (
+        queryset
+        .values(
+            "item_id",
+            "item__name"
+        )
+        .annotate(
+            total_quantity=Sum("quantity"),
+
+            total_purchase_usd=Sum(
+                "total_line_usd"
+            ),
+
+            total_purchase_syp=Sum(
+                "total_line_syp"
+            ),
+
+            min_price_usd=Min(
+                "unit_cost_usd"
+            ),
+
+            max_price_usd=Max(
+                "unit_cost_usd"
+            ),
+
+            min_price_syp=Min(
+                "unit_cost_syp"
+            ),
+
+            max_price_syp=Max(
+                "unit_cost_syp"
+            ),
+
+            invoice_count=Count(
+                "invoice_id",
+                distinct=True
+            ),
+        )
+        .order_by("item__name")
+    )
+
+    result = []
+
+    for row in rows:
+        quantity = row["total_quantity"] or 0
+        total_usd = row["total_purchase_usd"] or 0
+        total_syp = row["total_purchase_syp"] or 0
+
+        result.append({
+            "item_id": row["item_id"],
+            "item_name": row["item__name"],
+
+            "total_quantity": quantity,
+
+            "average_price_usd":
+                total_usd / quantity
+                if quantity else 0,
+
+            "average_price_syp":
+                total_syp / quantity
+                if quantity else 0,
+
+            "min_price_usd":
+                row["min_price_usd"] or 0,
+
+            "max_price_usd":
+                row["max_price_usd"] or 0,
+
+            "min_price_syp":
+                row["min_price_syp"] or 0,
+
+            "max_price_syp":
+                row["max_price_syp"] or 0,
+
+            "invoice_count":
+                row["invoice_count"],
+        })
+
+    return Response(result)

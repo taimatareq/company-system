@@ -8,9 +8,16 @@
 # urlpatterns = router.urls
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views import PurchaseInvoiceViewSet, last_purchase_price, PurchasePaymentViewSet
+
 from .views import (
-purchase_payment_receipt_print)
+    PurchaseInvoiceViewSet,
+    last_purchase_price,
+    PurchasePaymentViewSet,
+    purchase_payment_receipt_print,
+    purchase_average_price_report,
+)
+
+router = DefaultRouter()
 router = DefaultRouter()
 router.register(
     r'purchase-invoices',
@@ -32,6 +39,11 @@ urlpatterns = [
     "purchase-payments/<int:payment_id>/receipt/",
     purchase_payment_receipt_print,
     name="purchase_payment_receipt_print"
+),
+path(
+    "reports/average-purchase-price/",
+    purchase_average_price_report,
+    name="purchase_average_price_report",
 ),
 ]
 
