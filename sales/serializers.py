@@ -109,6 +109,7 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop("items")
 
+        validated_data["is_applied"] = True
         invoice = SalesInvoice.objects.create(**validated_data)
 
         total_usd = 0

@@ -38,6 +38,7 @@ import SupplierStatementPage from "./pages/SupplierStatementPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";  
 import ProfilePage from "./pages/ProfilePage";
+import AveragePriceReportPage from "./pages/AveragePriceReportPage";
 function App() {
   console.log(
   "TOKEN BEFORE APP:",
@@ -143,7 +144,7 @@ function App() {
         {page==="customers"&&<CustomersPage/>}
         {page === "suppliers" && <SuppliersPage />}
         {page === "sales-representatives" && <SalesRepresentativesPage />}
-        {page === "reports" && <ReportsPage />}
+        {page === "reports" && (<ReportsPage setPage={setPage} />)}
         {page ==="sales-report"&&<SalesReportPage/>}
         {page === "cash-boxes" && (<CashBoxesPage />)}
         {page === "purchases-report" && <PurchaseReportPage />}
@@ -152,6 +153,11 @@ function App() {
         {page === "supplier-statement" && <SupplierStatementPage />}
         {page === "notifications" &&<NotificationsPage />}
         {page === "profile" && <ProfilePage />}
+
+
+        {page === "average-price-report" && (
+        <AveragePriceReportPage setPage={setPage} />
+          )}
         
 
       </Layout>
