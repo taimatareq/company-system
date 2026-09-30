@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
-
+import AlertModal from "../components/common/AlertModal.jsx";
 const API_URL = "http://127.0.0.1:8000/api";
 
 function SalesPage({ setPage }) {
     const { t } = useTranslation();
-
+    const [successMessage, setSuccessMessage] = useState("");
     const [branches, setBranches] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -18,10 +18,20 @@ function SalesPage({ setPage }) {
     const [customer, setCustomer] = useState("");
     const [salesRep, setSalesRep] = useState("");
     const [paymentType, setPaymentType] = useState("cash");
+    const [cashBoxes, setCashBoxes] = useState([]);
+    const [cashBox, setCashBox] = useState("");
     const [exchangeRate, setExchangeRate] = useState("");
     const [dueDate, setDueDate] = useState("");
+    const invoiceHeaderReady =
+      branch &&
+      warehouse &&
+      customer &&
+      paymentType &&
+      exchangeRate &&
+      (paymentType !== "cash" || cashBox);
     const [showExchangeRateModal, setShowExchangeRateModal] =useState(false);
     const [newExchangeRate, setNewExchangeRate] =useState("");
+    const [alertMessage, setAlertMessage] = useState("");
     const [newExchangeRateDate, setNewExchangeRateDate] =useState(new Date().toISOString().split("T")[0]);
     const [invoiceItems, setInvoiceItems] = useState([
   {
@@ -50,6 +60,7 @@ useEffect(() => {
 )
     .then((res) => res.json())
     .then((data) => {
+      console.log("WAREHOUSE ITEMS:", data);
       setItems(Array.isArray(data) ? data : []);
       setInvoiceItems([
         {
@@ -98,7 +109,12 @@ useEffect(() => {
       setExchangeRates(ratesList);
 
       if (ratesList.length > 0) {
-        setExchangeRate(ratesList[0].id);
+        const latestRate = [...ratesList].sort(
+          (a, b) =>
+            new Date(b.rate_date) - new Date(a.rate_date)
+        )[0];
+
+        setExchangeRate(latestRate.id);
       }
 
       setSalesReps(
@@ -129,6 +145,40 @@ useEffect(() => {
     })
     .catch((err) => {
       console.error(err);
+    });
+}, [branch]);
+useEffect(() => {
+  if (!branch) {
+    setCashBoxes([]);
+    setCashBox("");
+    return;
+  }
+
+  apiFetch(`/cashboxes/?branch=${branch}`)
+    .then((res) => res.json())
+    .then((data) => {
+      const boxes = Array.isArray(data)
+        ? data
+        : data?.results || [];
+
+      // نعرض صناديق الكاش فقط
+      const cashOnly = boxes.filter(
+        (box) => box.box_type === "cash"
+      );
+
+      setCashBoxes(cashOnly);
+
+      // إذا يوجد صندوق واحد فقط، اختاره تلقائياً
+      if (cashOnly.length === 1) {
+        setCashBox(String(cashOnly[0].id));
+      } else {
+        setCashBox("");
+      }
+    })
+    .catch((err) => {
+      console.error("Error loading cash boxes:", err);
+      setCashBoxes([]);
+      setCashBox("");
     });
 }, [branch]);
 const handleAddExchangeRate = async () => {
@@ -230,7 +280,9 @@ const handleItemChange = (index, field, value) => {
       selectedItem?.item_type !== "service" &&
       Number(value) > available
     ) {
-      alert(`${t("only_available_in_stock")} ${available}`);
+     setAlertMessage(
+        `${t("only_available_in_stock")} ${available}`
+      );
       updatedItems[index].quantity = available;
       setInvoiceItems([...updatedItems]);
       return;
@@ -291,7 +343,10 @@ if (!customer) {
   alert(t("please_select_customer"));
   return;
 }
-
+if (paymentType === "cash" && !cashBox) {
+  alert(t("please_select_cash_box"));
+  return;
+}
 if (!exchangeRate) {
   alert(t("please_select_exchange_rate"));
   return;
@@ -337,7 +392,10 @@ if (invalidRow) {
     invoice_date: new Date().toISOString(),
 
     payment_type: paymentType,
-
+    cash_box:
+      paymentType === "cash"
+        ? Number(cashBox)
+        : null,
     due_date:
       paymentType === "credit"
         ? dueDate || null
@@ -386,9 +444,9 @@ if (invalidRow) {
     return;
     }
 
-    alert(t("sales_invoice_created"));
-
-    setPage("sales-invoices");
+    setSuccessMessage(
+      t("sales_invoice_created")
+    );
 
   } catch (error) {
 
@@ -602,7 +660,29 @@ return(
           </div>
         )}
       </div>
+        {paymentType === "cash" && (
+  <div className="form-group">
+    <label>{t("cash_box")}</label>
 
+    <select
+      value={cashBox}
+      onChange={(e) => setCashBox(e.target.value)}
+    >
+      <option value="">
+        {t("select_cash_box")}
+      </option>
+
+      {cashBoxes.map((box) => (
+        <option
+          key={box.id}
+          value={box.id}
+        >
+          {box.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
       <div className="form-group">
         <label>{t("sales_representative")}</label>
 
@@ -722,34 +802,133 @@ return(
               <div className="exchange-rate-row">
 <input
   type="text"
-  placeholder={t("scan_barcode")}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      const scannedId = Number(e.target.value);
+  placeholder={
+    invoiceHeaderReady
+      ? t("scan_barcode")
+      : t("complete_invoice_details_first")
+  }
+  disabled={!invoiceHeaderReady}
+  onKeyDown={async (e) => {
+    if (e.key !== "Enter") return;
 
-      const scannedItem = items.find(
-        (item) => item.id === scannedId
+    e.preventDefault();
+
+    
+    const input = e.currentTarget;
+    const barcode = e.currentTarget.value.trim();
+
+    if (!barcode) return;
+
+    try {
+      const response = await apiFetch(
+        `/items/by-barcode/?barcode=${encodeURIComponent(barcode)}`
       );
 
-      if (!scannedItem) {
+      const data = await response.json();
+
+      if (!response.ok || !data.exists || !data.item) {
         alert(t("item_not_found"));
-        e.target.value = "";
+        input.value = "";
         return;
       }
 
-      handleItemChange(
-        index,
-        "item",
-        String(scannedItem.id)
+      const scannedItem = data.item;
+
+      console.log("SCANNED ITEM:", scannedItem);
+      console.log("WAREHOUSE ITEMS:", items);
+
+
+      const warehouseItem = items.find(
+      (item) =>
+          Number(item.id) === Number(scannedItem.id)
       );
 
-      handleItemChange(
-        index,
-        "quantity",
-        "1"
+if (!warehouseItem) {
+  alert(t("item_not_found"));
+  input.value = "";
+  return;
+}
+
+setInvoiceItems((prevItems) => {
+  const existingIndex = prevItems.findIndex(
+    (row) =>
+      Number(row.item) === Number(scannedItem.id)
+  );
+
+  // المادة موجودة مسبقًا → زيد نفس البند
+  if (existingIndex !== -1) {
+    const updated = [...prevItems];
+
+    const currentQuantity =
+      Number(updated[existingIndex].quantity || 0);
+
+    const newQuantity = currentQuantity + 1;
+
+    const available =
+      Number(warehouseItem.available_quantity || 0);
+
+    if (
+      warehouseItem.item_type !== "service" &&
+      newQuantity > available
+    ) {
+      alert(
+        `${t("only_available_in_stock")} ${available}`
       );
 
-      e.target.value = "";
+      return prevItems;
+    }
+
+    updated[existingIndex] = {
+      ...updated[existingIndex],
+      quantity: String(newQuantity),
+    };
+
+    return updated;
+  }
+
+  // أول مرة تنعمل Scan للمادة
+  const selectedRate = exchangeRates.find(
+    (rate) =>
+      rate.id === Number(exchangeRate)
+  );
+
+  const usdPrice =
+    Number(warehouseItem.retail_price || 0);
+
+  const rateValue =
+    Number(selectedRate?.usd_to_syp || 0);
+
+  const newRow = {
+    item: String(scannedItem.id),
+    quantity: "1",
+    unit_price_usd: usdPrice,
+    unit_price_syp: (
+      usdPrice * rateValue
+    ).toFixed(2),
+  };
+
+  // إذا السطر الحالي فارغ، استخدميه
+  const emptyIndex = prevItems.findIndex(
+    (row) => !row.item
+  );
+
+  if (emptyIndex !== -1) {
+    const updated = [...prevItems];
+
+    updated[emptyIndex] = newRow;
+
+    return updated;
+  }
+
+  // وإلا أضيفي سطرًا جديدًا
+  return [...prevItems, newRow];
+});
+
+input.value = "";
+      
+    } catch (error) {
+      console.error("Barcode scan error:", error);
+      alert(t("item_not_found"));
     }
   }}
   style={{
@@ -757,14 +936,15 @@ return(
   }}
 />
                 <select
-                  value={row.item}
-                  onChange={(e) =>
-                    handleItemChange(
-                      index,
-                      "item",
-                      e.target.value
-                    )
-                  }
+  value={row.item}
+  disabled={!invoiceHeaderReady}
+  onChange={(e) =>
+    handleItemChange(
+      index,
+      "item",
+      e.target.value
+    )
+  }
                 >
                   <option value="">
                     {t("select_item")}
@@ -782,14 +962,13 @@ return(
                 </select>
 
                 <button
-                  type="button"
-                  className="add-rate-btn"
-                  onClick={() =>
-                    setShowItemModal(true)
-                  }
-                >
-                  +
-                </button>
+  type="button"
+  className="add-rate-btn"
+  disabled={!invoiceHeaderReady}
+  onClick={() => setShowItemModal(true)}
+>
+  +
+</button>
 
               </div>
             </td>
@@ -859,11 +1038,12 @@ return(
     </table>
 
     <button
-      className="add-btn"
-      onClick={addRow}
-    >
-      {t("add_item")}
-    </button>
+  className="add-btn"
+  disabled={!invoiceHeaderReady}
+  onClick={addRow}
+>
+  {t("add_item")}
+</button>
   </div>
 <div>
   <div className="card table-wrapper">
@@ -1048,7 +1228,41 @@ return(
     </div>
   </div>
 )}
+<AlertModal
+  isOpen={!!alertMessage}
+  title={t("warning")}
+  message={alertMessage}
+  onClose={() => setAlertMessage("")}
+/>
+{successMessage && (
+  <div className="modal-overlay">
+    <div className="modal-content success-modal">
 
+      <div className="success-modal-icon">
+        ✓
+      </div>
+
+      <h3>{t("success")}</h3>
+
+      <p className="success-modal-message">
+        {successMessage}
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn primary"
+          onClick={() => {
+            setSuccessMessage("");
+            setPage("sales-invoices");
+          }}
+        >
+          {t("ok")}
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 </>
 );
 }

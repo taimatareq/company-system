@@ -13,6 +13,12 @@ class Item(models.Model):
     name = models.CharField(max_length=100)
 
     code = models.CharField(max_length=50, unique=True)
+    barcode = models.CharField(
+    max_length=100,
+    unique=True,
+    null=True,
+    blank=True
+    )
 
     retail_price = models.DecimalField(max_digits=10, decimal_places=2)
 

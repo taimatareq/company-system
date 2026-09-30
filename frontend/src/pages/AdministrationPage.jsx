@@ -53,7 +53,10 @@ page:"suppliers"
 title:t("pos"),
 page:"pos"
 },
-
+{
+  title: t("cash_boxes"),
+  page: "cash-boxes"
+},
 {
 title:t("exchange_rates"),
 page:"exchange-rates"

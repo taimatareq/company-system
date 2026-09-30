@@ -25,7 +25,8 @@ function ItemsPage({setPage}) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-
+  const [successMessage, setSuccessMessage] = useState(""); 
+  const [deleteItemId, setDeleteItemId] = useState(null);
   const [search, setSearch] = useState("");
 
   const [sortBy, setSortBy] = useState({
@@ -72,20 +73,34 @@ function ItemsPage({setPage}) {
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm(t("delete_this_item?"))) return;
+  setDeleteItemId(id);
+};
 
-    fetch(`${API_URL}/items/${id}/`, {
-      method: "DELETE",
+const confirmDelete = () => {
+  if (!deleteItemId) return;
+
+  fetch(`${API_URL}/items/${deleteItemId}/`, {
+    method: "DELETE",
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Delete failed");
+      }
+
+      setItems(
+        items.filter((item) => item.id !== deleteItemId)
+      );
+
+      setDeleteItemId(null);
+      setSuccessMessage(t("item_deleted_successfully"));
     })
-      .then(() => {
-        setItems(items.filter((item) => item.id !== id));
-        toast.success(t("item_deleted_successfully"));
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error(t("failed_to_delete_item"));
-      });
-  };
+    .catch((err) => {
+      console.error(err);
+      setDeleteItemId(null);
+      toast.error(t("failed_to_delete_item"));
+    });
+};
+
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -104,28 +119,45 @@ function ItemsPage({setPage}) {
     if (editingItem) {
       
       apiFetch(`/items/${editingItem.id}/`, {
-      method: "PUT",
+  method: "PUT",
+  body: JSON.stringify({
+    ...itemData,
+    id: editingItem.id,
+  }),
+})
+  .then(async (res) => {
+    const data = await res.json();
 
-      body: JSON.stringify({
-        ...itemData,
-        id: editingItem.id,
-      }),
-    })
-        .then((res) => res.json())
-        .then((updatedItem) => {
-          setItems(
-            items.map((item) =>
-              item.id === updatedItem.id ? updatedItem : item
-            )
-          );
+    if (!res.ok) {
+      if (data.barcode) {
+        toast.error(data.barcode[0]);
+      } else if (data.code) {
+        toast.error(t("item_code_exists"));
+      } else {
+        toast.error(t("failed_to_update_item"));
+      }
 
-          toast.success(t("item_updated_successfully"));
-          resetForm();
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error(t("failed_to_update_item"));
-        });
+      return null;
+    }
+
+    return data;
+  })
+  .then((updatedItem) => {
+    if (!updatedItem) return;
+
+    setItems(
+      items.map((item) =>
+        item.id === updatedItem.id ? updatedItem : item
+      )
+    );
+
+    toast.success(t("item_updated_successfully"));
+    resetForm();
+  })
+  .catch((err) => {
+    console.error(err);
+    toast.error(t("failed_to_update_item"));
+  });
     } else {
 
   console.log(itemData);
@@ -151,11 +183,14 @@ function ItemsPage({setPage}) {
       }
 
       // نجاح الإضافة
+      // نجاح الإضافة
       setItems([...items, data]);
-      toast.success(t("item_added_successfully"));
-   
 
       resetForm();
+
+      setSuccessMessage(
+        t("item_added_successfully")
+      );
 
     })
     .catch((err) => {
@@ -304,14 +339,16 @@ function ItemsPage({setPage}) {
 
 </div>
         {showForm && (
-          <div className="card">
-            <ItemForm
-              editingItem={editingItem}
-              onSave={handleSave}
-              onCancel={resetForm}
-            />
-          </div>
-        )}
+  <div className="modal-overlay">
+    <div className="modal-content item-form-modal">
+      <ItemForm
+        editingItem={editingItem}
+        onSave={handleSave}
+        onCancel={resetForm}
+      />
+    </div>
+  </div>
+)}
 
         <div className="table-header">
           <div className="filters-row">
@@ -416,7 +453,70 @@ function ItemsPage({setPage}) {
             {t("next")}
           </button>
         </div>
+        {deleteItemId && (
+  <div className="modal-overlay">
+    <div className="modal-content delete-confirm-modal">
+
+      <div className="delete-modal-icon">
+        !
+      </div>
+
+      <h3>{t("confirm_delete")}</h3>
+
+      <p className="delete-modal-message">
+        {t("delete_item_confirmation")}
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn cancel"
+          onClick={() => setDeleteItemId(null)}
+        >
+          {t("cancel")}
+        </button>
+
+        <button
+          className="modal-btn danger"
+          onClick={confirmDelete}
+        >
+          {t("delete")}
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+        {successMessage && (
+  <div className="modal-overlay">
+    <div className="modal-content success-modal">
+
+      <div className="success-modal-icon">
+        ✓
+      </div>
+
+      <h3>{t("success")}</h3>
+
+      <p className="success-modal-message">
+        {successMessage}
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn primary"
+          onClick={() =>
+            setSuccessMessage("")
+          }
+        >
+          {t("ok")}
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
         </>
+        
   );
 }
 

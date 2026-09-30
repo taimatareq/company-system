@@ -39,3 +39,37 @@ def item_purchase_price(request):
         return Response({"price": item.retail_price})
     except Item.DoesNotExist:
         return Response({"price": 0})
+@api_view(["GET"])
+def item_by_barcode(request):
+    barcode = request.GET.get("barcode", "").strip()
+
+    if not barcode:
+        return Response(
+            {
+                "exists": False,
+                "message": "Barcode is required."
+            },
+            status=400
+        )
+
+    try:
+        item = Item.objects.get(barcode=barcode)
+
+        return Response({
+            "exists": True,
+            "item": {
+                "id": item.id,
+                "name": item.name,
+                "code": item.code,
+                "barcode": item.barcode,
+                "item_type": item.item_type,
+                "retail_price": item.retail_price,
+                "wholesale_price": item.wholesale_price,
+            }
+        })
+
+    except Item.DoesNotExist:
+        return Response({
+            "exists": False,
+            "item": None
+        })

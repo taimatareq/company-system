@@ -16,6 +16,7 @@ import DashboardPage from "./pages/DashboardPage";
 import { useEffect } from "react";
 import SalesPaymentsPage from "./pages/SalesPaymentsPage";
 import PurchasePaymentsPage from "./pages/PurchasePaymentsPage";
+import CashBoxesPage from "./pages/CashBoxesPage";
 import CustomerDebtsPage from "./pages/CustomerDebtsPage";
 import AdministrationPage from "./pages/AdministrationPage";
 import SupplierDebtsPage from "./pages/SupplierDebtsPage";
@@ -144,6 +145,7 @@ function App() {
         {page === "sales-representatives" && <SalesRepresentativesPage />}
         {page === "reports" && <ReportsPage />}
         {page ==="sales-report"&&<SalesReportPage/>}
+        {page === "cash-boxes" && (<CashBoxesPage />)}
         {page === "purchases-report" && <PurchaseReportPage />}
         {page === "inventory-report" && <InventoryReportPage />}
         {page === "customer-statement" && <CustomerStatementPage />}

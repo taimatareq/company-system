@@ -4,105 +4,52 @@ export async function apiFetch(
   endpoint,
   options = {}
 ) {
-
-  let token =
-    localStorage.getItem(
-      "access_token"
-    );
+  const token =
+    localStorage.getItem("access_token");
 
   const isFormData =
     options.body instanceof FormData;
 
-  const buildHeaders = (
-    accessToken
-  ) => {
-
-    const headers = {
-      ...(options.headers || {}),
-
-      Authorization:
-        `Bearer ${accessToken}`,
-    };
-
-    if (!isFormData) {
-      headers["Content-Type"] =
-        "application/json";
-    }
-
-    return headers;
+  const headers = {
+    ...(options.headers || {}),
   };
 
-  let response = await fetch(
+  if (token) {
+    headers.Authorization =
+      `Bearer ${token}`;
+  }
+
+  if (!isFormData) {
+    headers["Content-Type"] =
+      "application/json";
+  }
+
+  const response = await fetch(
     `${API_URL}${endpoint}`,
     {
       ...options,
-
-      headers: buildHeaders(
-        token
-      ),
+      headers,
     }
   );
 
   if (response.status === 401) {
-
-    const refresh =
-      localStorage.getItem(
-        "refresh_token"
-      );
-
-    const refreshResponse =
-      await fetch(
-        `${API_URL}/token/refresh/`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            refresh,
-          }),
-        }
-      );
-
-    if (!refreshResponse.ok) {
-
-      localStorage.removeItem(
-        "access_token"
-      );
-
-      localStorage.removeItem(
-        "refresh_token"
-      );
-
-      window.location.reload();
-
-      return response;
-    }
-
-    const refreshData =
-      await refreshResponse.json();
-
-    localStorage.setItem(
-      "access_token",
-      refreshData.access
+    localStorage.removeItem(
+      "access_token"
     );
 
-    token =
-      refreshData.access;
-
-    response = await fetch(
-      `${API_URL}${endpoint}`,
-      {
-        ...options,
-
-        headers: buildHeaders(
-          token
-        ),
-      }
+    localStorage.removeItem(
+      "refresh_token"
     );
+
+    localStorage.removeItem(
+      "currentUser"
+    );
+
+    localStorage.removeItem(
+      "selectedSalesInvoice"
+    );
+
+    window.location.reload();
   }
 
   return response;
