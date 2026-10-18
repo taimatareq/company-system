@@ -1,11 +1,19 @@
 
 from decimal import Decimal
+from unittest.mock import Mock, patch
 
 from django.core.exceptions import ValidationError
-from django.test import SimpleTestCase
-from unittest.mock import patch
+from django.test import SimpleTestCase, TestCase
 
-from .services import validate_return_quantity
+from sales.models import SalesInvoice, SalesInvoiceItem
+from purchases.models import PurchaseInvoice, PurchaseInvoiceItem
+
+from .services import (
+    validate_return_quantity,
+    validate_return_invoice_item,
+    confirm_sales_return,
+    confirm_purchase_return,
+)
 
 
 class ReturnValidationTests(SimpleTestCase):
@@ -16,7 +24,7 @@ class ReturnValidationTests(SimpleTestCase):
             validate_return_quantity(
                 invoice_item=None,
                 quantity=Decimal("0"),
-                return_type="sales"
+                return_type="sales",
             )
 
         mock_available.assert_not_called()
@@ -27,7 +35,7 @@ class ReturnValidationTests(SimpleTestCase):
             validate_return_quantity(
                 invoice_item=None,
                 quantity=Decimal("-2"),
-                return_type="sales"
+                return_type="sales",
             )
 
         mock_available.assert_not_called()
@@ -40,7 +48,7 @@ class ReturnValidationTests(SimpleTestCase):
             validate_return_quantity(
                 invoice_item=None,
                 quantity=Decimal("8"),
-                return_type="sales"
+                return_type="sales",
             )
 
     @patch("returns.services.get_available_return_quantity")
@@ -50,17 +58,10 @@ class ReturnValidationTests(SimpleTestCase):
         result = validate_return_quantity(
             invoice_item=None,
             quantity=Decimal("3"),
-            return_type="sales"
+            return_type="sales",
         )
 
         self.assertTrue(result)
-
-
-from unittest.mock import Mock
-
-from sales.models import SalesInvoice, SalesInvoiceItem
-from purchases.models import PurchaseInvoice, PurchaseInvoiceItem
-from .services import validate_return_invoice_item
 
 
 class ReturnInvoiceValidationTests(SimpleTestCase):
@@ -76,7 +77,7 @@ class ReturnInvoiceValidationTests(SimpleTestCase):
             validate_return_invoice_item(
                 invoice,
                 invoice_item,
-                "sales"
+                "sales",
             )
 
     def test_sales_item_from_correct_invoice_is_accepted(self):
@@ -89,7 +90,7 @@ class ReturnInvoiceValidationTests(SimpleTestCase):
         result = validate_return_invoice_item(
             invoice,
             invoice_item,
-            "sales"
+            "sales",
         )
 
         self.assertTrue(result)
@@ -105,7 +106,7 @@ class ReturnInvoiceValidationTests(SimpleTestCase):
             validate_return_invoice_item(
                 invoice,
                 invoice_item,
-                "purchase"
+                "purchase",
             )
 
     def test_purchase_item_from_correct_invoice_is_accepted(self):
@@ -118,7 +119,40 @@ class ReturnInvoiceValidationTests(SimpleTestCase):
         result = validate_return_invoice_item(
             invoice,
             invoice_item,
-            "purchase"
+            "purchase",
         )
 
         self.assertTrue(result)
+
+
+class ReturnConfirmationTests(TestCase):
+
+    @patch("returns.services.SalesReturn.objects")
+    def test_confirmed_sales_return_cannot_be_confirmed_again(
+        self,
+        mock_objects,
+    ):
+        sales_return = Mock()
+        sales_return.status = "confirmed"
+
+        mock_objects.select_for_update.return_value \
+            .select_related.return_value \
+            .get.return_value = sales_return
+
+        with self.assertRaises(ValidationError):
+            confirm_sales_return(return_id=1)
+
+    @patch("returns.services.PurchaseReturn.objects")
+    def test_confirmed_purchase_return_cannot_be_confirmed_again(
+        self,
+        mock_objects,
+    ):
+        purchase_return = Mock()
+        purchase_return.status = "confirmed"
+
+        mock_objects.select_for_update.return_value \
+            .select_related.return_value \
+            .get.return_value = purchase_return
+
+        with self.assertRaises(ValidationError):
+            confirm_purchase_return(return_id=1)
