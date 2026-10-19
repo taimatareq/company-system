@@ -63,7 +63,13 @@ def validate_return_quantity(invoice_item, quantity, return_type):
     Validate the requested return quantity.
     """
 
-    quantity = Decimal(str(quantity))
+    try:
+        quantity = Decimal(str(quantity))
+    except (TypeError, ValueError, ArithmeticError):
+        raise ValidationError("Invalid return quantity.")
+
+    if not quantity.is_finite():
+        raise ValidationError("Invalid return quantity.")
 
     if quantity <= 0:
         raise ValidationError(
@@ -122,6 +128,56 @@ def validate_return_invoice_item(invoice, invoice_item, return_type):
     return True
 
 
+def validate_return_items(invoice, return_items, return_type):
+    """
+    Validate all return lines together.
+
+    Multiple lines referencing the same invoice item must not
+    exceed the remaining quantity available for return.
+    """
+
+    quantities_by_invoice_item = {}
+    invoice_items_by_id = {}
+
+    for return_item in return_items:
+        invoice_item = return_item.invoice_item
+
+        validate_return_invoice_item(
+            invoice,
+            invoice_item,
+            return_type,
+        )
+
+        quantity = Decimal(str(return_item.quantity))
+
+        if not quantity.is_finite() or quantity <= 0:
+            raise ValidationError(
+                "Return quantity must be greater than zero."
+            )
+
+        invoice_item_id = invoice_item.pk
+
+        quantities_by_invoice_item[invoice_item_id] = (
+            quantities_by_invoice_item.get(
+                invoice_item_id,
+                Decimal("0"),
+            ) + quantity
+        )
+
+        invoice_items_by_id[invoice_item_id] = invoice_item
+
+    for invoice_item_id, total_quantity in (
+        quantities_by_invoice_item.items()
+    ):
+        validate_return_quantity(
+            invoice_items_by_id[invoice_item_id],
+            total_quantity,
+            return_type,
+        )
+
+    return True
+
+
 @transaction.atomic
 def confirm_sales_return(return_id):
     """
@@ -147,6 +203,10 @@ def confirm_sales_return(return_id):
             "The original sales invoice must be applied first."
         )
 
+    # Lock original invoice to serialize confirmations
+    # of returns referencing the same invoice.
+    SalesInvoice.objects.select_for_update().get(pk=invoice.pk)
+
     return_items = list(
         sales_return.items.select_related(
             "invoice_item__item"
@@ -158,27 +218,18 @@ def confirm_sales_return(return_id):
             "Cannot confirm an empty sales return."
         )
 
+    # Validate the entire return before changing stock.
+    validate_return_items(
+        invoice,
+        return_items,
+        "sales",
+    )
+
     total_usd = Decimal("0.00")
     total_syp = Decimal("0.00")
 
-    # Lock the original invoice to serialize confirmations
-    # of returns referencing the same invoice.
-    SalesInvoice.objects.select_for_update().get(pk=invoice.pk)
-
     for return_item in return_items:
         invoice_item = return_item.invoice_item
-
-        validate_return_invoice_item(
-            invoice,
-            invoice_item,
-            "sales",
-        )
-
-        validate_return_quantity(
-            invoice_item,
-            return_item.quantity,
-            "sales",
-        )
 
         total_usd += (
             return_item.quantity * invoice_item.unit_price_usd
@@ -243,6 +294,7 @@ def confirm_purchase_return(return_id):
             "The original purchase invoice must be applied first."
         )
 
+    # Lock original invoice to serialize confirmations.
     PurchaseInvoice.objects.select_for_update().get(pk=invoice.pk)
 
     return_items = list(
@@ -256,23 +308,18 @@ def confirm_purchase_return(return_id):
             "Cannot confirm an empty purchase return."
         )
 
+    # Validate the entire return before changing stock.
+    validate_return_items(
+        invoice,
+        return_items,
+        "purchase",
+    )
+
     total_usd = Decimal("0.00")
     total_syp = Decimal("0.00")
 
     for return_item in return_items:
         invoice_item = return_item.invoice_item
-
-        validate_return_invoice_item(
-            invoice,
-            invoice_item,
-            "purchase",
-        )
-
-        validate_return_quantity(
-            invoice_item,
-            return_item.quantity,
-            "purchase",
-        )
 
         total_usd += (
             return_item.quantity * invoice_item.unit_cost_usd
@@ -316,3 +363,47 @@ def confirm_purchase_return(return_id):
     )
 
     return purchase_return
+
+    def test_duplicate_sales_return_lines_exceed_invoice_quantity(self):
+        sales_return = self.create_sales_return(Decimal("3.00"))
+
+        SalesReturnItem.objects.create(
+            sales_return=sales_return,
+            invoice_item=self.sales_invoice_item,
+            quantity=Decimal("4.00"),
+            unit_price_usd=Decimal("20.00"),
+            unit_price_syp=Decimal("200000.00"),
+        )
+
+        with self.assertRaises(ValidationError):
+            confirm_sales_return(sales_return.id)
+
+        self.assertEqual(
+            get_latest_quantity(self.warehouse.id, self.item.id),
+            Decimal("10.00"),
+        )
+
+        sales_return.refresh_from_db()
+        self.assertEqual(sales_return.status, "draft")
+
+    def test_duplicate_purchase_return_lines_exceed_invoice_quantity(self):
+        purchase_return = self.create_purchase_return(Decimal("5.00"))
+
+        PurchaseReturnItem.objects.create(
+            purchase_return=purchase_return,
+            invoice_item=self.purchase_invoice_item,
+            quantity=Decimal("4.00"),
+            unit_cost_usd=Decimal("10.00"),
+            unit_cost_syp=Decimal("100000.00"),
+        )
+
+        with self.assertRaises(ValidationError):
+            confirm_purchase_return(purchase_return.id)
+
+        self.assertEqual(
+            get_latest_quantity(self.warehouse.id, self.item.id),
+            Decimal("10.00"),
+        )
+
+        purchase_return.refresh_from_db()
+        self.assertEqual(purchase_return.status, "draft")
