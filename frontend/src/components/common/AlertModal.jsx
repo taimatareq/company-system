@@ -1,9 +1,13 @@
+import { useTranslation } from "react-i18next";
+
 function AlertModal({
   isOpen,
   message,
   onClose,
-  title = "تنبيه",
+  title,
 }) {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   return (
@@ -11,7 +15,7 @@ function AlertModal({
       <div className="modal-content alert-modal">
         <div className="alert-modal-icon">!</div>
 
-        <h3>{title}</h3>
+        <h3>{title || t("alert")}</h3>
 
         <p className="alert-modal-message">
           {message}
@@ -22,7 +26,7 @@ function AlertModal({
             className="modal-btn primary"
             onClick={onClose}
           >
-            حسناً
+            {t("ok")}
           </button>
         </div>
       </div>

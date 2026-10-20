@@ -32,25 +32,15 @@ export async function apiFetch(
     }
   );
 
-  if (response.status === 401) {
-    localStorage.removeItem(
-      "access_token"
-    );
+ if (response.status === 401) {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("selectedSalesInvoice");
 
-    localStorage.removeItem(
-      "refresh_token"
-    );
-
-    localStorage.removeItem(
-      "currentUser"
-    );
-
-    localStorage.removeItem(
-      "selectedSalesInvoice"
-    );
-
-    window.location.reload();
-  }
+  window.location.href = "/";
+  throw new Error("SESSION_EXPIRED");
+}
 
   return response;
 }

@@ -48,7 +48,7 @@ function ItemsPage({setPage}) {
   const itemsPerPage = 5;
 
   useEffect(() => {
-    fetch(`${API_URL}/items/`)
+    apiFetch("/items/")
       .then((res) => res.json())
       .then((data) => {
       console.log("API DATA:", data);
@@ -79,7 +79,7 @@ function ItemsPage({setPage}) {
 const confirmDelete = () => {
   if (!deleteItemId) return;
 
-  fetch(`${API_URL}/items/${deleteItemId}/`, {
+  apiFetch(`/items/${deleteItemId}/`, {
     method: "DELETE",
   })
     .then((res) => {

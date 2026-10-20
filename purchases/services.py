@@ -28,16 +28,22 @@ class PurchaseService:
 
         if exchange_rate_obj:
             exchange_rate_value = exchange_rate_obj.usd_to_syp
+        payment_type = validated_data["payment_type"]
 
+        invoice_status = (
+                "paid"
+                if payment_type == "cash"
+                else "unpaid"
+            )
         invoice = PurchaseInvoice.objects.create(
             created_by=user if user.is_authenticated else None,
             branch=branch,
             warehouse=warehouse,
             supplier=supplier,
             invoice_date=validated_data["invoice_date"],
-            payment_type=validated_data["payment_type"],
+            payment_type=payment_type,
             due_date=validated_data.get("due_date"),
-            status=validated_data.get("status", "unpaid"),
+            status=invoice_status,
             exchange_rate=exchange_rate_obj,
             exchange_rate_value=exchange_rate_value,
             total_amount=Decimal("0.00"),

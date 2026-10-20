@@ -6,6 +6,7 @@ from rest_framework import serializers
 from inventory.models import Inventory
 from inventory.services import get_latest_quantity
 from rest_framework.exceptions import ValidationError
+from django.db import transaction
 from .models import (
     SalesInvoice,
     SalesInvoiceItem,
@@ -51,7 +52,10 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
         source="sales_rep.name",
         read_only=True
     )
-
+    cash_box_name = serializers.CharField(
+        source="cash_box.name",
+        read_only=True
+    )
     sales_rep = serializers.PrimaryKeyRelatedField(
         queryset=SalesRepresentative.objects.all(),
         required=False,
@@ -212,6 +216,12 @@ class SalesPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesPayment
         fields = "__all__"
+        extra_kwargs = {
+            "cash_box": {
+                "required": True,
+                "allow_null": False,
+            }
+        }
 
     def validate(self, data):
         invoice = data.get("invoice")
@@ -254,40 +264,65 @@ class SalesPaymentSerializer(serializers.ModelSerializer):
 
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
-        payment = SalesPayment.objects.create(
-            **validated_data
+
+        invoice = SalesInvoice.objects.select_for_update().get(
+            pk=validated_data["invoice"].pk
         )
 
-        invoice = payment.invoice
+        amount = validated_data["amount"]
+        cash_box = validated_data["cash_box"]
 
         total_paid = (
             invoice.payments.aggregate(
                 total=Sum("amount")
-            )["total"] or 0
+            )["total"]
+            or 0
         )
 
-        invoice_total = invoice.total_amount_usd
+        remaining = invoice.total_amount_usd - total_paid
 
-        if total_paid <= 0:
-            invoice.status = "unpaid"
+        if invoice.status == "paid" or remaining <= 0:
+            raise serializers.ValidationError({
+                "invoice": "Invoice is already fully paid."
+            })
 
-        elif total_paid < invoice_total:
+        if amount <= 0:
+            raise serializers.ValidationError({
+                "amount": "Payment amount must be greater than zero."
+            })
+
+        if amount > remaining:
+            raise serializers.ValidationError({
+                "amount": f"Payment cannot exceed remaining amount: {remaining}"
+            })
+
+        if cash_box.box_type != "cash" or cash_box.branch_id != invoice.branch_id:
+            raise serializers.ValidationError({
+                "cash_box": "Invalid cash box for this invoice."
+            })
+
+        validated_data["invoice"] = invoice
+
+        payment = SalesPayment.objects.create(
+            **validated_data
+        )
+
+        new_total_paid = total_paid + amount
+
+        if new_total_paid < invoice.total_amount_usd:
             invoice.status = "partial"
-
         else:
             invoice.status = "paid"
 
         invoice.save(update_fields=["status"])
 
         CashBoxTransaction.objects.create(
-            cash_box=payment.cash_box,
+            cash_box=cash_box,
             transaction_type="in",
-            amount=payment.amount,
-            description=(
-                f"Customer payment - "
-                f"Invoice SI-{invoice.id:04d}"
-            )
+            amount=amount,
+            description=f"sales_payment:{payment.id}:{invoice.id}"
         )
 
         return payment

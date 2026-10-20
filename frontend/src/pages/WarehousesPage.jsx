@@ -155,19 +155,11 @@ window.location.reload()
 
         <td style={{ textAlign: "center" }}>
           <button
-            style={{
-              background: "#9CA3AF",
-              color: "white",
-              border: "none",
-              padding: "8px 18px",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-            onClick={() => openEditModal(warehouse)}
-          >
-            {t("edit")}
-          </button>
+  className="edit-btn"
+  onClick={() => openEditModal(warehouse)}
+>
+  {t("edit")}
+</button>
         </td>
       </tr>
     ))}

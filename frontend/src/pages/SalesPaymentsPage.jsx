@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import AlertModal from "../components/common/AlertModal";
 import PaymentSuccessModal from "../components/common/PaymentSuccessModal";
 function SalesPaymentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [invoices, setInvoices] = useState([]);
   const [invoice,setInvoice]=useState(localStorage.getItem("selectedPaymentInvoice")||"");  const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 16));
@@ -12,17 +12,11 @@ function SalesPaymentsPage() {
   const [invoiceTotal,setInvoiceTotal]=useState(0);
   const [paidAmount,setPaidAmount]=useState(0);
   const [cashBoxes, setCashBoxes] = useState([]);
-  const [successModal, setSuccessModal] = useState({
-  isOpen: false,
-  receiptUrl: "",
-    });
+  const [successModal, setSuccessModal] = useState({isOpen: false,receiptUrl: "",});
   const [cashBox, setCashBox] = useState(""); 
   const [cashBoxesLoading, setCashBoxesLoading] = useState(false);
   const [remaining,setRemaining]=useState(0);
-  const [alertModal, setAlertModal] = useState({
-  isOpen: false,
-  message: "",
-});
+  const [alertModal, setAlertModal] = useState({isOpen: false,message: "",});
   useEffect(()=>{
 
     if(!invoice){
@@ -83,11 +77,12 @@ function SalesPaymentsPage() {
         const list = Array.isArray(data) ? data : data.results || [];
 
         setInvoices(
-          list.filter(
-            (invoice) =>
-              Number(invoice.remaining || 0) > 0
-          )
-        );
+        list.filter(
+          (invoice) =>
+            invoice.status !== "paid" &&
+            Number(invoice.remaining || 0) > 0
+        )
+      );
       });
   }, []);
  useEffect(() => {
@@ -196,10 +191,14 @@ const handleSavePayment = async () => {
 
   const paymentData = await response.json();
 
+  const lang = i18n.resolvedLanguage?.startsWith("ar")
+  ? "ar"
+  : "en";
+
   setSuccessModal({
-  isOpen: true,
-  receiptUrl: `http://127.0.0.1:8000/api/sales-payments/${paymentData.id}/receipt/`,
-});
+    isOpen: true,
+    receiptUrl: `http://127.0.0.1:8000/api/sales-payments/${paymentData.id}/receipt/?lang=${lang}`,
+  });
 };
 const handleViewReceipt = () => {
   window.open(successModal.receiptUrl, "_blank");
@@ -228,6 +227,18 @@ return (
     </div>
 
     <div className="card">
+  {invoices.length === 0 ? (
+    <div className="empty-state">
+      <div className="empty-state-icon">✓</div>
+
+      <h3>{t("no_customer_debts")}</h3>
+
+      <p>
+        {t("no_customer_debts_description")}
+      </p>
+    </div>
+  ) : (
+    <>
       <div className="form-grid">
 
         <div className="form-group">
@@ -238,7 +249,9 @@ return (
           <select
             value={invoice}
             disabled={
-              !!localStorage.getItem("selectedPaymentInvoice")
+              !!localStorage.getItem(
+                "selectedPaymentInvoice"
+              )
             }
             onChange={(e) =>
               setInvoice(e.target.value)
@@ -271,7 +284,9 @@ return (
 
           <input
             type="text"
-            value={`$${Number(invoiceTotal || 0).toFixed(2)}`}
+            value={`$${Number(
+              invoiceTotal || 0
+            ).toFixed(2)}`}
             readOnly
           />
         </div>
@@ -283,7 +298,9 @@ return (
 
           <input
             type="text"
-            value={`$${Number(paidAmount || 0).toFixed(2)}`}
+            value={`$${Number(
+              paidAmount || 0
+            ).toFixed(2)}`}
             readOnly
           />
         </div>
@@ -295,53 +312,78 @@ return (
 
           <input
             type="text"
-            value={`$${Number(remaining || 0).toFixed(2)}`}
+            value={`$${Number(
+              remaining || 0
+            ).toFixed(2)}`}
             readOnly
           />
         </div>
-            <div className="form-group">
-  <label>
-    {t("cash_box")}
-  </label>
 
-  <select
-  value={cashBox}
-  onChange={(e) => setCashBox(e.target.value)}
-  disabled={cashBoxesLoading || cashBoxes.length === 0}
->
-  <option value="">
-    {cashBoxesLoading
-      ? t("loading")
-      : cashBoxes.length === 0
-      ? t("no_cash_box_for_branch")
-      : t("select_cash_box")}
-  </option>
+        <div className="form-group">
+          <label>
+            {t("cash_box")}
+          </label>
 
-  {cashBoxes.map((box) => (
-    <option
-      key={box.id}
-      value={box.id}
-    >
-      {box.name}
-    </option>
-  ))}
-</select>
+          <select
+            value={cashBox}
+            onChange={(e) =>
+              setCashBox(e.target.value)
+            }
+            disabled={
+              cashBoxesLoading ||
+              cashBoxes.length === 0
+            }
+          >
+            <option value="">
+              {cashBoxesLoading
+                ? t("loading")
+                : cashBoxes.length === 0
+                ? t("no_cash_box_for_branch")
+                : t("select_cash_box")}
+            </option>
 
+            {cashBoxes.map((box) => (
+              <option
+                key={box.id}
+                value={box.id}
+              >
+                {box.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-
-</div>
         <div className="form-group">
           <label>
             {t("new_payment_amount")}
           </label>
 
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) =>
-              setAmount(e.target.value)
-            }
-          />
+          <div className="payment-amount-row">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) =>
+                setAmount(e.target.value)
+              }
+            />
+
+            <button
+              type="button"
+              className="pay-full-btn"
+              disabled={Number(remaining) <= 0}
+              onClick={() =>
+                setAmount(
+                  Number(
+                    remaining || 0
+                  ).toFixed(2)
+                )
+              }
+            >
+              {t("pay_full_remaining")}
+            </button>
+          </div>
         </div>
 
         <div className="form-group">
@@ -380,7 +422,9 @@ return (
       >
         {t("save_payment")}
       </button>
-    </div>
+    </>
+  )}
+</div>
     <AlertModal
   isOpen={alertModal.isOpen}
   title={t("alert")}

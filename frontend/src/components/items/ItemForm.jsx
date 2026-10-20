@@ -111,14 +111,6 @@ const handleSubmit = async () => {
     setFormError(t("barcode_already_exists"));
     return;
   }
-    if (
-        name.trim() === "" ||
-        retailPrice === "" ||
-        wholesalePrice === ""
-      ) {
-        setFormError(t("please_fill_all_fields"));
-        return;
-      }
 
       setFormError("");
     // فحص نهائي للباركود قبل الحفظ
@@ -129,6 +121,11 @@ const handleSubmit = async () => {
         );
 
         const data = await response.json();
+
+        if (!response.ok) {
+          setFormError(t("failed_to_fetch_items"));
+          return;
+        }
 
         if (data.exists) {
           // إذا كان الباركود لمادة ثانية نوقف الحفظ

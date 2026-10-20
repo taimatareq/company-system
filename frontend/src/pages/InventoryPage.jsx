@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
-
+import DamageModal from "../components/DamageModal";
 function InventoryPage() {
   const { t } = useTranslation();
 
@@ -361,130 +361,30 @@ function InventoryPage() {
       </div>
 
       {showDamageModal && (
-        <div className="modal-overlay">
-          <div className="balance-modal">
-            <h2>تسجيل تالف</h2>
-
-            <label>المستودع</label>
-            <select
-              value={damageWarehouse}
-              onChange={(e) => {
-                setDamageWarehouse(e.target.value);
-                setDamageItem("");
-                setDamageQuantity("");
-                setDamageError("");
-              }}
-            >
-              <option value="">اختر المستودع</option>
-
-              {[
-                ...new Map(
-                  inventory.map((row) => [row.warehouse, row])
-                ).values(),
-              ].map((row) => (
-                <option key={row.warehouse} value={row.warehouse}>
-                  {row.warehouse_name}
-                </option>
-              ))}
-            </select>
-
-            <label>المادة</label>
-            <select
-              value={damageItem}
-              onChange={(e) => {
-                setDamageItem(e.target.value);
-                setDamageQuantity("");
-                setDamageError("");
-              }}
-              disabled={!damageWarehouse}
-            >
-              <option value="">اختر المادة</option>
-
-              {[
-                ...new Map(
-                  inventory
-                    .filter(
-                      (row) =>
-                        String(row.warehouse) === String(damageWarehouse)
-                    )
-                    .map((row) => [row.item, row])
-                ).values(),
-              ].map((row) => (
-                <option key={row.item} value={row.item}>
-                  {row.item_name}
-                </option>
-              ))}
-            </select>
-
-            {damageWarehouse && damageItem && (
-              <div
-                style={{
-                  padding: "10px",
-                  marginTop: "10px",
-                  marginBottom: "10px",
-                  background: "#f5f5f5",
-                  borderRadius: "8px",
-                }}
-              >
-                الرصيد الحالي: <strong>{selectedDamageStock?.quantity ?? 0}</strong>
-              </div>
-            )}
-
-            <label>كمية التالف</label>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={damageQuantity}
-              onChange={(e) => {
-                setDamageQuantity(e.target.value);
-                setDamageError("");
-              }}
-              placeholder="أدخل كمية التالف"
-            />
-
-            <label>سبب التلف / ملاحظات</label>
-            <textarea
-              value={damageNotes}
-              onChange={(e) => setDamageNotes(e.target.value)}
-              placeholder="مثال: كسر، انتهاء صلاحية..."
-              rows="3"
-            />
-
-            {damageError && (
-              <p style={{ color: "red", marginTop: "10px" }}>
-                {damageError}
-              </p>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginTop: "15px",
-              }}
-            >
-              <button className="save-btn" onClick={handleCreateDamage}>
-                حفظ التالف
-              </button>
-
-              <button
-                className="cancel-btn"
-                onClick={() => {
-                  setShowDamageModal(false);
-                  setDamageWarehouse("");
-                  setDamageItem("");
-                  setDamageQuantity("");
-                  setDamageNotes("");
-                  setDamageError("");
-                }}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  <DamageModal
+    inventory={inventory}
+    damageWarehouse={damageWarehouse}
+    setDamageWarehouse={setDamageWarehouse}
+    damageItem={damageItem}
+    setDamageItem={setDamageItem}
+    damageQuantity={damageQuantity}
+    setDamageQuantity={setDamageQuantity}
+    damageNotes={damageNotes}
+    setDamageNotes={setDamageNotes}
+    damageError={damageError}
+    setDamageError={setDamageError}
+    selectedDamageStock={selectedDamageStock}
+    handleCreateDamage={handleCreateDamage}
+    onClose={() => {
+      setShowDamageModal(false);
+      setDamageWarehouse("");
+      setDamageItem("");
+      setDamageQuantity("");
+      setDamageNotes("");
+      setDamageError("");
+    }}
+  />
+)}
 
       {showBalanceModal && (
         <div className="modal-overlay">

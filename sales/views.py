@@ -219,7 +219,10 @@ class SalesPaymentViewSet(
         SalesPaymentSerializer
     )
 def sales_payment_receipt_print(request, payment_id):
-    payment = SalesPayment.objects.get(pk=payment_id)
+    payment = SalesPayment.objects.select_related(
+        "invoice", "cash_box"
+    ).get(pk=payment_id)
+
     invoice = payment.invoice
 
     total_paid = (
@@ -231,18 +234,29 @@ def sales_payment_receipt_print(request, payment_id):
 
     remaining = invoice.total_amount_usd - total_paid
 
+    cash_box_name = (
+        payment.cash_box.name
+        if payment.cash_box_id
+        else "-"
+    )
+    language = request.GET.get("lang", "en")
+
+    if language not in ["ar", "en"]:
+        language = "en"
     return render(request, "receipts/sales_payment_receipt.html", {
         "payment": payment,
         "invoice": invoice,
         "total_paid": total_paid,
         "remaining": remaining,
+        "cash_box_name": cash_box_name,
+        "language": language,
     })
 @api_view(["GET"])
 def receivables_payables(request):
 
     sales_total = 0
 
-    for invoice in SalesInvoice.objects.all():
+    for invoice in SalesInvoice.objects.exclude(status="paid"):
 
         paid = (
 

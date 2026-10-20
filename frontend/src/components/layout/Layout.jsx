@@ -177,6 +177,18 @@ setPage(
     <span>{t("inventory")}</span>
 
   </div>
+    <div
+  className={page === "damages" ? "menu-item active" : "menu-item"}
+  onClick={() => setPage("damages")}
+>
+  <span>{t("damage")}</span>
+</div>
+<div
+  className={page === "expenses" ? "menu-item active" : "menu-item"}
+  onClick={() => setPage("expenses")}
+>
+  <span>{t("expenses")}</span>
+</div>
 <div className="sidebar-group">
   <div
     className={`menu-item menu-group-title ${

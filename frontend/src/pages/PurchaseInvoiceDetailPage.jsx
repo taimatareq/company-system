@@ -15,6 +15,7 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
     apiFetch(`/purchase-invoices/${invoiceId}/`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("PURCHASE INVOICE DATA:", data);
         setInvoice(data);
         setLoading(false);
       })
@@ -25,11 +26,19 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
   }, [invoiceId]);
 
   if (loading) {
-    return <div className="loading-state">Loading invoice...</div>;
+    return (
+      <div className="loading-state">
+        {t("loading_invoice")}
+      </div>
+    );
   }
 
   if (!invoice) {
-    return <div className="empty-state">Invoice not found</div>;
+    return (
+      <div className="empty-state">
+        {t("invoice_not_found")}
+      </div>
+    );
   }
 
   return (
@@ -58,8 +67,15 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
         <p><strong>{t("branch")}:</strong> {invoice.branch}</p>
         <p><strong>{t("warehouse")}:</strong> {invoice.warehouse}</p>
         <p><strong>{t("date")}:</strong> {new Date(invoice.invoice_date).toLocaleDateString()}</p>
-        <p><strong>{t("payment")}:</strong> {invoice.payment_type}</p>
-        <p><strong>{t("status")}:</strong> {invoice.status}</p>
+        <p>
+  <strong>{t("payment")}:</strong>{" "}
+  {t(invoice.payment_type)}
+</p>
+
+<p>
+  <strong>{t("status")}:</strong>{" "}
+  {t(invoice.status)}
+</p>
       </div>
     </div>
 
@@ -77,7 +93,8 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
         </thead>
 
         <tbody>
-          {invoice.items.map((item) => (
+          {invoice.items?.map((item) => (
+
             <tr key={item.id}>
               <td>{item.item}</td>
               <td>{item.quantity}</td>
@@ -106,7 +123,7 @@ function PurchaseInvoiceDetailPage({ invoiceId, setPage }) {
     <div>
       <div className="invoice-actions">
         <button
-          className="print-invoice-btn"
+          className="add-btn"
           onClick={() => {
             document.title = invoice.invoice_number;
             window.print();

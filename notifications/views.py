@@ -28,7 +28,7 @@ def notifications_summary(request):
 
         remaining = invoice.total_amount_usd - paid
 
-        if remaining > 0:
+        if invoice.status != "paid" and remaining > 0:
             customer_debts += 1
             if not invoice.due_date:
                     due_status = "no_due_date"

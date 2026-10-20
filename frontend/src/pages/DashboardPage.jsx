@@ -1,22 +1,26 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
-
+import { useTranslation } from "react-i18next";
 import {
+  FiFileText,
+  FiShoppingCart,
+  FiArrowDownCircle,
+  FiArrowUpCircle,
+} from "react-icons/fi";
+import {
+  ResponsiveContainer,
   PieChart,
   Pie,
-  ResponsiveContainer,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   LineChart,
   Line,
   CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  BarChart,
+  Bar,
 } from "recharts";
-
-import { useTranslation } from "react-i18next";
 
 function DashboardPage() {
   const { t } = useTranslation();
@@ -50,11 +54,8 @@ function DashboardPage() {
       apiFetch("/receivables-payables/"),
     ])
       .then((responses) =>
-        Promise.all(
-          responses.map((response) => response.json())
-        )
+        Promise.all(responses.map((response) => response.json()))
       )
-
       .then(
         ([
           sales,
@@ -67,43 +68,6 @@ function DashboardPage() {
           monthlyTrend,
           finance,
         ]) => {
-          console.log("FINANCE DATA:", finance);
-
-          // =========================
-          // FINANCE
-          // =========================
-
-          setFinanceData(
-            finance || {
-              receivables: 0,
-              payables: 0,
-            }
-          );
-
-          // =========================
-          // MONTHLY SALES
-          // =========================
-
-          setMonthlySales(
-            Array.isArray(monthlyTrend)
-              ? monthlyTrend
-              : []
-          );
-
-          // =========================
-          // TOP SELLING ITEMS
-          // =========================
-
-          setTopSellingItems(
-            Array.isArray(topItems)
-              ? topItems
-              : []
-          );
-
-          // =========================
-          // COUNTS
-          // =========================
-
           setSalesCount(
             Array.isArray(sales)
               ? sales.length
@@ -134,31 +98,33 @@ function DashboardPage() {
               : suppliers.results?.length || 0
           );
 
-          // =========================
-          // INVENTORY
-          // =========================
-
-          const inventoryList =
-            Array.isArray(inventoryData)
-              ? inventoryData
-              : inventoryData?.results || [];
+          const inventoryList = Array.isArray(inventoryData)
+            ? inventoryData
+            : inventoryData?.results || [];
 
           setInventory(inventoryList);
+          setInventoryCount(inventoryList.length);
 
-          setInventoryCount(
-            inventoryList.length
+          setTopSellingItems(
+            Array.isArray(topItems) ? topItems : []
+          );
+
+          setMonthlySales(
+            Array.isArray(monthlyTrend) ? monthlyTrend : []
+          );
+
+          setFinanceData(
+            finance || {
+              receivables: 0,
+              payables: 0,
+            }
           );
         }
       )
-
-      .catch((err) => {
-        console.error(err);
+      .catch((error) => {
+        console.error(error);
       });
   }, []);
-
-  // =========================
-  // EMESA COLORS
-  // =========================
 
   const COLORS = [
     "#078B9A",
@@ -167,90 +133,54 @@ function DashboardPage() {
     "#D7F0F2",
   ];
 
-  // =========================
-  // INVENTORY OPERATIONS
-  // =========================
-
   const operationChartData = [
     {
-      name: "Purchase",
-
+      name: t("purchase"),
       value: inventory.filter(
-        (row) =>
-          row.operation_type === "purchase"
+        (row) => row.operation_type === "purchase"
       ).length,
     },
-
     {
-      name: "Sale",
-
+      name: t("sale"),
       value: inventory.filter(
-        (row) =>
-          row.operation_type === "sale"
+        (row) => row.operation_type === "sale"
       ).length,
     },
-
     {
-      name: "Damage",
-
+      name: t("damage"),
       value: inventory.filter(
-        (row) =>
-          row.operation_type === "damage"
+        (row) => row.operation_type === "damage"
       ).length,
     },
   ];
 
-  // =========================
-  // TOP SELLING ITEMS
-  // =========================
+  const topSellingChartData = (topSellingItems || []).map(
+    (item) => ({
+      name: item.name,
+      quantity: item.quantity,
+    })
+  );
 
-  const topSellingChartData = (
-    topSellingItems || []
-  ).map((item) => ({
-    name: item.name,
-    quantity: item.quantity,
-  }));
+  const monthlySalesChartData = (monthlySales || []).map(
+    (row) => ({
+      month: row.month,
+      total: Number(row.total || 0),
+    })
+  );
 
-  // =========================
-  // MONTHLY SALES
-  // =========================
-
-  const monthlySalesChartData = (
-    monthlySales || []
-  ).map((row) => ({
-    month: row.month,
-    total: Number(row.total || 0),
-  }));
-
-  // =========================
-  // RECEIVABLES / PAYABLES
-  // =========================
-
-  const financeChartData = [
-    {
-      name: t("receivables"),
-      amount: Number(
-        financeData.receivables || 0
-      ),
-    },
-
-    {
-      name: t("payables"),
-      amount: Number(
-        financeData.payables || 0
-      ),
-    },
-  ];
+  const formatMoney = (value) => {
+    return Number(value || 0).toLocaleString();
+  };
 const CustomItemTick = ({ x, y, payload }) => {
   return (
     <text
-      x={x - 10}
+      x={x - 12}
       y={y}
       dy={4}
       textAnchor="end"
-      fill="#1E293B"
-      fontSize={13}
-      fontWeight={600}
+      fill="#334155"
+      fontSize={12}
+      fontWeight={500}
       direction="ltr"
     >
       {payload.value}
@@ -258,314 +188,305 @@ const CustomItemTick = ({ x, y, payload }) => {
   );
 };
   return (
-    <div>
-      {/* =========================
-          PAGE TITLE
-      ========================= */}
-
-      <h1 className="page-title">
-        {t("dashboard")}
-      </h1>
-
-      {/* =========================
-          STAT CARDS
-      ========================= */}
-
-      <div className="dashboard-grid">
-
-        <div className="dashboard-card">
-          <h3>{t("sales_invoices")}</h3>
-          <strong>{salesCount}</strong>
+    <div className="modern-dashboard">
+      {/* HEADER */}
+      <div className="dashboard-header">
+        <div>
+          <h1 className="page-title">{t("dashboard")}</h1>
+          <p className="dashboard-subtitle">
+            {t("business_overview")}
+          </p>
         </div>
-
-        <div className="dashboard-card">
-          <h3>{t("purchase_invoices")}</h3>
-          <strong>{purchaseCount}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <h3>{t("items")}</h3>
-          <strong>{itemsCount}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <h3>{t("customers")}</h3>
-          <strong>{customersCount}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <h3>{t("suppliers")}</h3>
-          <strong>{suppliersCount}</strong>
-        </div>
-
-        <div className="dashboard-card">
-          <h3>
-            {t("inventory_movements")}
-          </h3>
-
-          <strong>
-            {inventoryCount}
-          </strong>
-        </div>
-
       </div>
 
-      {/* =========================
-          CHARTS
-      ========================= */}
+      {/* MAIN KPI CARDS */}
+      <div className="dashboard-kpi-grid">
+        <div className="dashboard-kpi-card">
+          <div className="dashboard-kpi-icon">
+  <FiFileText size={22} />
+</div>
+          <div>
+            <span className="dashboard-kpi-label">
+              {t("sales_invoices")}
+            </span>
 
-      <div className="dashboard-charts-grid">
+            <strong className="dashboard-kpi-value">
+              {salesCount}
+            </strong>
 
-        {/* INVENTORY OPERATIONS */}
-
-        <div className="card dashboard-chart-card">
-
-          <h2>
-            {t("inventory_operations")}
-          </h2>
-
-          <ResponsiveContainer
-            width="100%"
-            height={300}
-          >
-            <PieChart>
-
-              <Pie
-                data={operationChartData}
-                dataKey="value"
-                nameKey="name"
-                outerRadius={110}
-                innerRadius={45}
-                paddingAngle={3}
-                cornerRadius={8}
-              >
-                {operationChartData.map(
-                  (entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        COLORS[
-                          index %
-                            COLORS.length
-                        ]
-                      }
-                    />
-                  )
-                )}
-              </Pie>
-
-              <Tooltip />
-
-            </PieChart>
-          </ResponsiveContainer>
-
+            <span className="dashboard-kpi-description">
+              {t("total_sales_invoices")}
+            </span>
+          </div>
         </div>
 
-        {/* TOP SELLING ITEMS */}
+        <div className="dashboard-kpi-card">
+<div className="dashboard-kpi-icon">
+  <FiShoppingCart size={22} />
+</div>
+          <div>
+           {/* Sales */}
+{/* <div className="dashboard-kpi-icon">
+  <FiFileText size={22} />
+</div> */}
+<span className="dashboard-kpi-label">
+              {t("purchase_invoices")}
+            </span>
+            <strong className="dashboard-kpi-value">
+              {purchaseCount}
+            </strong>
 
-        <div className="card dashboard-chart-card">
+            <span className="dashboard-kpi-description">
+              {t("total_purchase_invoices")}
+            </span>
+          </div>
+        </div>
 
-          <h2>
-            {t("top_selling_items")}
-          </h2>
+        <div className="dashboard-kpi-card">
+<div className="dashboard-kpi-icon">
+  <FiArrowDownCircle size={22} />
+</div>
+          <div>
+            <span className="dashboard-kpi-label">
+              {t("receivables")}
+            </span>
 
-          <ResponsiveContainer
-            width="100%"
-            height={300}
-          >
-            <BarChart
-              data={topSellingChartData}
-              layout="vertical"
-              margin={{
-                top: 10,
-                right: 25,
-                left: 40,
-                bottom: 10,
-              }}
-            >
+            <strong className="dashboard-kpi-value">
+              ${formatMoney(financeData.receivables)}
+            </strong>
 
-             <XAxis
-  type="number"
-  axisLine={false}
-  tickLine={false}
-  tick={{
-    fill: "#64748B",
-    fontSize: 12,
-    fontWeight: 500,
+            <span className="dashboard-kpi-description">
+              {t("customer_outstanding_balance")}
+            </span>
+          </div>
+        </div>
+
+        <div className="dashboard-kpi-card">
+<div className="dashboard-kpi-icon">
+  <FiArrowUpCircle size={22} />
+</div>
+          <div>
+            <span className="dashboard-kpi-label">
+              {t("payables")}
+            </span>
+
+            <strong className="dashboard-kpi-value">
+              ${formatMoney(financeData.payables)}
+            </strong>
+
+            <span className="dashboard-kpi-description">
+              {t("supplier_outstanding_balance")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN ANALYTICS */}
+      <div className="dashboard-main-grid">
+        {/* SALES OVERVIEW */}
+        <div className="dashboard-panel dashboard-sales-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2>{t("sales_overview")}</h2>
+              <p>{t("monthly_sales_performance")}</p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={monthlySalesChartData}>
+                <CartesianGrid
+                  stroke="#E8EEF0"
+                  strokeDasharray="4 4"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#64748B",
+                    fontSize: 12,
+                  }}
+                />
+
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#64748B",
+                    fontSize: 12,
+                  }}
+                />
+
+                <Tooltip />
+
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#078B9A"
+                  strokeWidth={3}
+                  dot={{
+                    r: 4,
+                    fill: "#078B9A",
+                    strokeWidth: 0,
+                  }}
+                  activeDot={{
+                    r: 6,
+                    fill: "#42B8C4",
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* TOP SELLING */}
+        <div className="dashboard-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2>{t("top_selling_items")}</h2>
+              <p>{t("best_performing_items")}</p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart
+  data={topSellingChartData}
+  layout="vertical"
+  margin={{
+    top: 10,
+    right: 20,
+    left: 90,
+    bottom: 10,
   }}
-/>
-<YAxis
+>
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#64748B",
+                    fontSize: 12,
+                  }}
+                />
+
+     <YAxis
   type="category"
   dataKey="name"
-  width={190}
+  width={200}
   axisLine={false}
   tickLine={false}
   tick={<CustomItemTick />}
 />
-{/* 
-<YAxis
-  type="category"
-  dataKey="name"
-  width={150}
-  axisLine={false}
-  tickLine={false}
-  tick={{
-    fill: "#1E293B",
-    fontSize: 13,
-    fontWeight: 600,
-  }}
-/> */}
 
-              <Tooltip />
+                <Tooltip />
 
-              <Bar
-                dataKey="quantity"
-                fill="#2AA6B3"
-                radius={[0, 8, 8, 0]}
-              />
-
-            </BarChart>
-          </ResponsiveContainer>
-
+                <Bar
+                  dataKey="quantity"
+                  fill="#42B8C4"
+                  radius={[0, 7, 7, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+      </div>
 
-        {/* MONTHLY SALES TREND */}
+      {/* BOTTOM SECTION */}
+      <div className="dashboard-bottom-grid">
+        {/* INVENTORY */}
+        <div className="dashboard-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2>{t("inventory_activity")}</h2>
+              <p>{t("inventory_operations_summary")}</p>
+            </div>
+          </div>
 
-        <div className="card dashboard-chart-card">
-
-  <h2>
-    {t("top_selling_items")}
-  </h2>
-
-  <div
-    className="top-selling-chart"
-    dir="ltr"
-  >
-
-          <ResponsiveContainer
-            width="100%"
-            height={320}
-          >
-            <LineChart
-              data={monthlySalesChartData}
-            >
-
-              <CartesianGrid
-                stroke="#E2E8F0"
-                strokeDasharray="4 4"
-                vertical={false}
-              />
-
-              <XAxis
-                dataKey="month"
-                tick={{
-                  fill: "#64748B",
-                  fontSize: 12,
-                }}
-                axisLine={{
-                  stroke: "#CBD5E1",
-                }}
-                tickLine={false}
-              />
-
-              <YAxis
-                tick={{
-                  fill: "#64748B",
-                  fontSize: 12,
-                }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <Tooltip />
-
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="#078B9A"
-                strokeWidth={3}
-                dot={{
-                  r: 4,
-                  fill: "#078B9A",
-                  strokeWidth: 0,
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: "#42B8C4",
-                }}
-              />
-
-            </LineChart>
-          </ResponsiveContainer>
-</div>
-        </div>
-
-        {/* RECEIVABLES VS PAYABLES */}
-
-        <div className="card dashboard-chart-card">
-
-          <h2>
-            {t("receivables_vs_payables")}
-          </h2>
-
-          <ResponsiveContainer
-            width="100%"
-            height={320}
-          >
-            <BarChart
-              data={financeChartData}
-              margin={{
-                top: 10,
-                right: 25,
-                left: 70,
-                bottom: 10,
-              }}
-            >
-
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fill: "#64748B",
-                  fontSize: 12,
-                }}
-              />
-
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fill: "#64748B",
-                  fontSize: 12,
-                }}
-              />
-
-              <Tooltip />
-
-              <Bar
-                dataKey="amount"
-                radius={[8, 8, 0, 0]}
-              >
-                {financeChartData.map(
-                  (entry, index) => (
+          <div className="inventory-donut-wrapper">
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={operationChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={4}
+                  cornerRadius={7}
+                >
+                  {operationChartData.map((entry, index) => (
                     <Cell
                       key={index}
-                      fill={
-                        index === 0
-                          ? "#078B9A"
-                          : "#42B8C4"
-                      }
+                      fill={COLORS[index % COLORS.length]}
                     />
-                  )
-                )}
-              </Bar>
+                  ))}
+                </Pie>
 
-            </BarChart>
-          </ResponsiveContainer>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
 
+            <div className="inventory-donut-center">
+              <strong>{inventoryCount}</strong>
+              <span>{t("movements")}</span>
+            </div>
+          </div>
+
+          <div className="dashboard-legend">
+            {operationChartData.map((item, index) => (
+              <div
+                className="dashboard-legend-item"
+                key={item.name}
+              >
+                <span
+                  className="dashboard-legend-dot"
+                  style={{
+                    backgroundColor:
+                      COLORS[index % COLORS.length],
+                  }}
+                />
+
+                {item.name}
+              </div>
+            ))}
+          </div>
         </div>
 
+        {/* BUSINESS SUMMARY */}
+        <div className="dashboard-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2>{t("business_summary")}</h2>
+              <p>{t("business_data_summary")}</p>
+            </div>
+          </div>
+
+          <div className="dashboard-summary-list">
+            <div className="dashboard-summary-row">
+              <span>{t("items")}</span>
+              <strong>{itemsCount}</strong>
+            </div>
+
+            <div className="dashboard-summary-row">
+              <span>{t("customers")}</span>
+              <strong>{customersCount}</strong>
+            </div>
+
+            <div className="dashboard-summary-row">
+              <span>{t("suppliers")}</span>
+              <strong>{suppliersCount}</strong>
+            </div>
+
+            <div className="dashboard-summary-row">
+              <span>{t("inventory_movements")}</span>
+              <strong>{inventoryCount}</strong>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -20,17 +20,26 @@ from purchases.models import PurchaseInvoice
 
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+
     def list(self, request):
         invoices = PurchaseInvoice.objects.all().order_by("-id")
 
         data = []
 
         for invoice in invoices:
-            total_paid = (
-                invoice.payments.aggregate(
-                    total=Sum("amount")
-                )["total"]
-                or 0
+            if invoice.payment_type == "cash" and invoice.status == "paid":
+                total_paid = invoice.total_amount_usd
+            else:
+                total_paid = (
+                    invoice.payments.aggregate(
+                        total=Sum("amount")
+                    )["total"]
+                    or 0
+                )
+
+            remaining = max(
+                invoice.total_amount_usd - total_paid,
+                0
             )
 
             data.append({
@@ -44,18 +53,29 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
                 "total_amount_usd": invoice.total_amount_usd,
                 "total_amount_syp": invoice.total_amount_syp,
                 "total_paid": total_paid,
-                "remaining": invoice.total_amount_usd - total_paid,
+                "remaining": remaining,
             })
 
         return Response(data)
+
     def retrieve(self, request, pk=None):
         invoice = PurchaseInvoice.objects.get(pk=pk)
-        total_paid = (
-            invoice.payments.aggregate(
-                total=Sum("amount")
-            )["total"]
-            or 0
+
+        if invoice.payment_type == "cash" and invoice.status == "paid":
+            total_paid = invoice.total_amount_usd
+        else:
+            total_paid = (
+                invoice.payments.aggregate(
+                    total=Sum("amount")
+                )["total"]
+                or 0
+            )
+
+        remaining = max(
+            invoice.total_amount_usd - total_paid,
+            0
         )
+
         items = []
 
         for invoice_item in invoice.items.all():
@@ -65,8 +85,14 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
                 "quantity": invoice_item.quantity,
                 "unit_cost_usd": invoice_item.unit_cost_usd,
                 "unit_cost_syp": invoice_item.unit_cost_syp,
-                "total_usd": invoice_item.quantity * invoice_item.unit_cost_usd,
-                "total_syp": invoice_item.quantity * invoice_item.unit_cost_syp,
+                "total_usd": (
+                    invoice_item.quantity *
+                    invoice_item.unit_cost_usd
+                ),
+                "total_syp": (
+                    invoice_item.quantity *
+                    invoice_item.unit_cost_syp
+                ),
             })
 
         return Response({
@@ -82,10 +108,13 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
             "total_amount_syp": invoice.total_amount_syp,
             "items": items,
             "total_paid": total_paid,
-            "remaining": invoice.total_amount_usd - total_paid,
+            "remaining": remaining,
         })
+
     def create(self, request):
-        serializer = PurchaseInvoiceCreateSerializer(data=request.data)
+        serializer = PurchaseInvoiceCreateSerializer(
+            data=request.data
+        )
         serializer.is_valid(raise_exception=True)
 
         invoice = PurchaseService.create_invoice(
@@ -102,13 +131,19 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
         )
 
     def update(self, request, pk=None):
-        raise ValidationError("Purchase invoices cannot be updated after creation.")
+        raise ValidationError(
+            "Purchase invoices cannot be updated after creation."
+        )
 
     def partial_update(self, request, pk=None):
-        raise ValidationError("Purchase invoices cannot be updated after creation.")
+        raise ValidationError(
+            "Purchase invoices cannot be updated after creation."
+        )
 
     def destroy(self, request, pk=None):
-        raise ValidationError("Purchase invoices cannot be deleted after creation.")
+        raise ValidationError(
+            "Purchase invoices cannot be deleted after creation."
+        )
 from rest_framework.decorators import api_view
 from .models import PurchaseInvoiceItem
 
@@ -139,64 +174,64 @@ class PurchasePaymentViewSet(viewsets.ModelViewSet):
     queryset = PurchasePayment.objects.all().order_by("-payment_date")
     serializer_class = PurchasePaymentSerializer
 def purchase_payment_receipt_print(
-    request,
-    payment_id
-):
+        request,
+        payment_id
+    ):
 
-    payment =PurchasePayment.objects.get(
-        pk=payment_id
-    )
-
-    invoice =payment.invoice
-
-    total_paid = (
-
-        invoice.payments
-
-        .filter(
-            id__lte=
-            payment.id
+        payment =PurchasePayment.objects.get(
+            pk=payment_id
         )
 
-        .aggregate(
-            total=
-            Sum("amount")
-        )["total"]
+        invoice =payment.invoice
 
-        or 0
+        total_paid = (
 
-    )
+            invoice.payments
 
-    remaining = (
+            .filter(
+                id__lte=
+                payment.id
+            )
 
-        invoice.total_amount_usd
-        - total_paid
+            .aggregate(
+                total=
+                Sum("amount")
+            )["total"]
 
-    )
+            or 0
 
-    return render(
+        )
 
-        request,
+        remaining = (
 
-        "receipts/purchase_payment_receipt.html",
+            invoice.total_amount_usd
+            - total_paid
 
-        {
+        )
 
-            "payment":
-            payment,
+        return render(
 
-            "invoice":
-            invoice,
+            request,
 
-            "remaining":
-            remaining,
+            "receipts/purchase_payment_receipt.html",
 
-            "total_paid":
-            total_paid,
+            {
 
-        }
+                "payment":
+                payment,
 
-    )
+                "invoice":
+                invoice,
+
+                "remaining":
+                remaining,
+
+                "total_paid":
+                total_paid,
+
+            }
+
+        )
 @api_view(["GET"])
 def receivables_payables(request):
 

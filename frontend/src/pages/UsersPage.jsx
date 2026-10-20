@@ -37,7 +37,7 @@ function UsersPage({setPage}) {
       .catch(() => {
         setPage("dashboard");
       });
-  }, [setPage]);  
+  }, [setPage]);
   useEffect(() => {
     apiFetch("/users/")
       .then((res) => res.json())
@@ -186,13 +186,30 @@ const handleUpdateUser = async () => {
           <h1 className="page-title">{t("users")}</h1>
           <p className="page-subtitle">{t("manage_users")}</p>
         </div>
+<div>
+  <button
+className="add-btn"
+onClick={()=>
+localStorage.setItem(
+"page",
+"administration"
+)
+||
+window.location.reload()
+}
+>
 
-        <button
-  className="create-user-btn"
+{t("back")}
+
+</button>
+   <button
+  className="add-btn"
   onClick={() => setShowCreateForm(true)}
 >
-  + {t("add_user")}
+   {t("add_user")}
 </button>
+</div>
+
       </div>
 {showCreateForm && (
   <div className="user-modal-overlay">
@@ -399,7 +416,7 @@ const handleUpdateUser = async () => {
 
 </div>
         </div>
-        
+
       </div>
 
       <div className="user-card-actions">
