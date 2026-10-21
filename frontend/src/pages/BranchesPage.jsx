@@ -210,15 +210,7 @@ t("inactive")
 </td>
 <td style={{ textAlign: "center" }}>
   <button
-    style={{
-      background: "#9CA3AF",
-      color: "white",
-      border: "none",
-      padding: "8px 18px",
-      borderRadius: "8px",
-      cursor: "pointer",
-      fontWeight: "600",
-    }}
+    className="edit-btn"
     onClick={() => {
       setEditingBranch(branch);
       setName(branch.name || "");

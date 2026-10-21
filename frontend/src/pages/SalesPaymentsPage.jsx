@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
-
+import AlertModal from "../components/common/AlertModal";
+import PaymentSuccessModal from "../components/common/PaymentSuccessModal";
 function SalesPaymentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [invoices, setInvoices] = useState([]);
   const [invoice,setInvoice]=useState(localStorage.getItem("selectedPaymentInvoice")||"");  const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 16));
   const [notes, setNotes] = useState("");
   const [invoiceTotal,setInvoiceTotal]=useState(0);
   const [paidAmount,setPaidAmount]=useState(0);
+  const [cashBoxes, setCashBoxes] = useState([]);
+  const [successModal, setSuccessModal] = useState({isOpen: false,receiptUrl: "",});
+  const [cashBox, setCashBox] = useState(""); 
+  const [cashBoxesLoading, setCashBoxesLoading] = useState(false);
   const [remaining,setRemaining]=useState(0);
+  const [alertModal, setAlertModal] = useState({isOpen: false,message: "",});
   useEffect(()=>{
 
     if(!invoice){
@@ -71,86 +77,100 @@ function SalesPaymentsPage() {
         const list = Array.isArray(data) ? data : data.results || [];
 
         setInvoices(
-          list.filter(
-            (invoice) =>
-              Number(invoice.remaining || 0) > 0
-          )
-        );
+        list.filter(
+          (invoice) =>
+            invoice.status !== "paid" &&
+            Number(invoice.remaining || 0) > 0
+        )
+      );
       });
   }, []);
+ useEffect(() => {
+  if (!invoice) {
+    setCashBoxes([]);
+    setCashBox("");
+    setCashBoxesLoading(false);
+    return;
+  }
 
-  // const handleSavePayment = async () => {
-  //   if (!invoice || !amount || Number(amount) <= 0) {
-  //     alert("Please select invoice and enter valid amount");
-  //     return;
-  //   }
-  //   if (Number(amount) > Number(remaining)) {
-  //     alert(`Payment cannot be greater than remaining amount: $${remaining}`);
-  //     return;
-  //   }
-  //   const response = await apiFetch("/sales-payments/", {
-  //     method: "POST",
-  //     body: JSON.stringify({
-  //       invoice: Number(invoice),
-  //       payment_date: new Date(paymentDate).toISOString(),
-  //       amount: Number(amount),
-  //       notes,
-  //     }),
-  //   });
+  const selectedInvoice = invoices.find(
+    (inv) => inv.id === Number(invoice)
+  );
 
-  //   if (!response.ok) {
-  //     const error = await response.json();
-  //     alert(JSON.stringify(error));
-  //     return;
-  //   }
-  //   const paymentData = await response.json();
+  if (!selectedInvoice?.branch) {
+    setCashBoxes([]);
+    setCashBox("");
+    setCashBoxesLoading(false);
+    return;
+  }
 
-  //   alert("Payment saved successfully");
+  setCashBoxesLoading(true);
 
-  //   window.open(
-  //     `http://127.0.0.1:8000/api/sales-payments/${paymentData.id}/receipt/`,
-  //     "_blank"
-  //   );
+  apiFetch(`/cashboxes/?branch=${selectedInvoice.branch}`)
+    .then((res) => res.json())
+    .then((data) => {
+      const boxes = Array.isArray(data)
+        ? data
+        : data?.results || [];
 
-  //   localStorage.removeItem("selectedPaymentInvoice");
-  //   localStorage.removeItem("paymentLocked");
+      const cashOnly = boxes.filter(
+        (box) => box.box_type === "cash"
+      );
 
-  //   localStorage.setItem("page", "customer-debts");
+      setCashBoxes(cashOnly);
 
-  //   window.location.reload();
-  //   const updatedResponse = await apiFetch("/sales-invoices/");
-  //   const updatedData = await updatedResponse.json();
-
-  //   const updatedList = Array.isArray(updatedData)
-  //   ? updatedData
-  //   : updatedData.results || [];
-
-  //   setInvoices(
-  //   updatedList.filter(
-  //       (invoice) =>
-  //       invoice.status === "unpaid" ||
-  //       invoice.status === "partial"
-  //   )
-  //   );
-  //   setInvoice("");
-  //   setAmount("");
-  //   setNotes("");
-  // };
+      if (cashOnly.length === 1) {
+        setCashBox(String(cashOnly[0].id));
+      } else {
+        setCashBox("");
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading cash boxes:", error);
+      setCashBoxes([]);
+      setCashBox("");
+    })
+    .finally(() => {
+      setCashBoxesLoading(false);
+    });
+}, [invoice, invoices]);
 const handleSavePayment = async () => {
   if (!invoice || !amount || Number(amount) <= 0) {
-    alert("Please select invoice and enter valid amount");
+    setAlertModal({
+      isOpen: true,
+      message: t("select_invoice_valid_amount"),
+    });
     return;
   }
+ if (!cashBox) {
+  setAlertModal({
+    isOpen: true,
+    message:
+      cashBoxes.length === 0
+        ? t("no_cash_box_create_first")
+        : t("please_select_cash_box"),
+  });
 
+  return;
+}
   if (Number(amount) > Number(remaining)) {
-    alert(`Payment cannot be greater than remaining amount: $${remaining}`);
-    return;
+    setAlertModal({
+      isOpen: true,
+      message: `${t("payment_exceeds_remaining")} $${Number(remaining).toFixed(2)}`,
+    });   
+     return;
   }
-
+  console.log("PAYMENT DATA:", {
+    invoice: Number(invoice),
+    cashBox: cashBox,
+    cash_box: Number(cashBox),
+    amount: Number(amount),
+  });
   const response = await apiFetch("/sales-payments/", {
     method: "POST",
     body: JSON.stringify({
       invoice: Number(invoice),
+      cash_box: Number(cashBox),
       payment_date: new Date(paymentDate).toISOString(),
       amount: Number(amount),
       notes,
@@ -159,19 +179,32 @@ const handleSavePayment = async () => {
 
   if (!response.ok) {
     const error = await response.json();
-    alert(JSON.stringify(error));
+    setAlertModal({
+      isOpen: true,
+      message:
+        error?.detail ||
+        error?.message ||
+        t("payment_save_failed"),
+    });    
     return;
   }
 
   const paymentData = await response.json();
 
-  alert("Payment saved successfully");
+  const lang = i18n.resolvedLanguage?.startsWith("ar")
+  ? "ar"
+  : "en";
 
-  window.open(
-    `http://127.0.0.1:8000/api/sales-payments/${paymentData.id}/receipt/`,
-    "_blank"
-  );
+  setSuccessModal({
+    isOpen: true,
+    receiptUrl: `http://127.0.0.1:8000/api/sales-payments/${paymentData.id}/receipt/?lang=${lang}`,
+  });
+};
+const handleViewReceipt = () => {
+  window.open(successModal.receiptUrl, "_blank");
+};
 
+const handleCloseSuccess = () => {
   localStorage.removeItem("selectedPaymentInvoice");
   localStorage.removeItem("paymentLocked");
 
@@ -194,6 +227,18 @@ return (
     </div>
 
     <div className="card">
+  {invoices.length === 0 ? (
+    <div className="empty-state">
+      <div className="empty-state-icon">✓</div>
+
+      <h3>{t("no_customer_debts")}</h3>
+
+      <p>
+        {t("no_customer_debts_description")}
+      </p>
+    </div>
+  ) : (
+    <>
       <div className="form-grid">
 
         <div className="form-group">
@@ -204,7 +249,9 @@ return (
           <select
             value={invoice}
             disabled={
-              !!localStorage.getItem("selectedPaymentInvoice")
+              !!localStorage.getItem(
+                "selectedPaymentInvoice"
+              )
             }
             onChange={(e) =>
               setInvoice(e.target.value)
@@ -237,7 +284,9 @@ return (
 
           <input
             type="text"
-            value={`$${Number(invoiceTotal || 0).toFixed(2)}`}
+            value={`$${Number(
+              invoiceTotal || 0
+            ).toFixed(2)}`}
             readOnly
           />
         </div>
@@ -249,7 +298,9 @@ return (
 
           <input
             type="text"
-            value={`$${Number(paidAmount || 0).toFixed(2)}`}
+            value={`$${Number(
+              paidAmount || 0
+            ).toFixed(2)}`}
             readOnly
           />
         </div>
@@ -261,9 +312,45 @@ return (
 
           <input
             type="text"
-            value={`$${Number(remaining || 0).toFixed(2)}`}
+            value={`$${Number(
+              remaining || 0
+            ).toFixed(2)}`}
             readOnly
           />
+        </div>
+
+        <div className="form-group">
+          <label>
+            {t("cash_box")}
+          </label>
+
+          <select
+            value={cashBox}
+            onChange={(e) =>
+              setCashBox(e.target.value)
+            }
+            disabled={
+              cashBoxesLoading ||
+              cashBoxes.length === 0
+            }
+          >
+            <option value="">
+              {cashBoxesLoading
+                ? t("loading")
+                : cashBoxes.length === 0
+                ? t("no_cash_box_for_branch")
+                : t("select_cash_box")}
+            </option>
+
+            {cashBoxes.map((box) => (
+              <option
+                key={box.id}
+                value={box.id}
+              >
+                {box.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form-group">
@@ -271,13 +358,32 @@ return (
             {t("new_payment_amount")}
           </label>
 
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) =>
-              setAmount(e.target.value)
-            }
-          />
+          <div className="payment-amount-row">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) =>
+                setAmount(e.target.value)
+              }
+            />
+
+            <button
+              type="button"
+              className="pay-full-btn"
+              disabled={Number(remaining) <= 0}
+              onClick={() =>
+                setAmount(
+                  Number(
+                    remaining || 0
+                  ).toFixed(2)
+                )
+              }
+            >
+              {t("pay_full_remaining")}
+            </button>
+          </div>
         </div>
 
         <div className="form-group">
@@ -316,7 +422,29 @@ return (
       >
         {t("save_payment")}
       </button>
-    </div>
+    </>
+  )}
+</div>
+    <AlertModal
+  isOpen={alertModal.isOpen}
+  title={t("alert")}
+  message={alertModal.message}
+  onClose={() =>
+    setAlertModal({
+      isOpen: false,
+      message: "",
+    })
+  }
+/>
+<PaymentSuccessModal
+  isOpen={successModal.isOpen}
+  title={t("payment_success")}
+  message={t("payment_saved_successfully")}
+  viewReceiptText={t("view_receipt")}
+  closeText={t("close")}
+  onViewReceipt={handleViewReceipt}
+  onClose={handleCloseSuccess}
+/>
   </>
 );
 }

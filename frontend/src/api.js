@@ -4,96 +4,43 @@ export async function apiFetch(
   endpoint,
   options = {}
 ) {
+  const token =
+    localStorage.getItem("access_token");
 
-  let token =
-    localStorage.getItem(
-      "access_token"
-    );
+  const isFormData =
+    options.body instanceof FormData;
 
-  let response = await fetch(
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers.Authorization =
+      `Bearer ${token}`;
+  }
+
+  if (!isFormData) {
+    headers["Content-Type"] =
+      "application/json";
+  }
+
+  const response = await fetch(
     `${API_URL}${endpoint}`,
     {
       ...options,
-
-      headers: {
-        ...(options.headers || {}),
-
-        Authorization:
-          `Bearer ${token}`,
-
-        "Content-Type":
-          "application/json",
-      },
+      headers,
     }
   );
 
-  if (response.status === 401) {
+ if (response.status === 401) {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("selectedSalesInvoice");
 
-    const refresh =
-      localStorage.getItem(
-        "refresh_token"
-      );
-    console.log("REFRESH TOKEN:", refresh);
-    const refreshResponse =
-      await fetch(
-        `${API_URL}/token/refresh/`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            refresh,
-          }),
-        }
-      );
-
-    if (!refreshResponse.ok) {
-
-      localStorage.removeItem(
-        "access_token"
-      );
-
-      localStorage.removeItem(
-        "refresh_token"
-      );
-
-      window.location.reload();
-
-      return response;
-    }
-
-    const refreshData =
-      await refreshResponse.json();
-
-    localStorage.setItem(
-      "access_token",
-      refreshData.access
-    );
-
-    token =
-      refreshData.access;
-
-    response = await fetch(
-      `${API_URL}${endpoint}`,
-      {
-        ...options,
-
-        headers: {
-          ...(options.headers || {}),
-
-          Authorization:
-            `Bearer ${token}`,
-
-          "Content-Type":
-            "application/json",
-        },
-      }
-    );
-  }
+  window.location.href = "/";
+  throw new Error("SESSION_EXPIRED");
+}
 
   return response;
 }

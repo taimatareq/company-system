@@ -138,20 +138,9 @@ window.location.reload()
                 <td>{pos.branch_name || "-"}</td>
                 <td>{pos.warehouse_name || "-"}</td>
                 <td style={{ textAlign: "center" }}>
-                  <button
-                    style={{
-                      background: "#9CA3AF",
-                      color: "white",
-                      border: "none",
-                      padding: "8px 18px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                    }}
-                    onClick={() => openEditModal(pos)}
-                  >
-                    {t("edit")}
-                  </button>
+                  <button className="edit-btn">
+  Edit
+</button>
                 </td>
               </tr>
             ))}

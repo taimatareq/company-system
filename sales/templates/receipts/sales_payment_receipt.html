@@ -1,11 +1,23 @@
+
 <!DOCTYPE html>
-<html>
+<html
+  lang="{{ language }}"
+  dir="{% if language == 'ar' %}rtl{% else %}ltr{% endif %}"
+>
 <head>
-  <title>Payment Receipt</title>
+  <meta charset="UTF-8">
+
+  <title>
+    {% if language == "ar" %}
+      إيصال قبض
+    {% else %}
+      Payment Receipt
+    {% endif %}
+  </title>
 
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, Tahoma, sans-serif;
       padding: 40px;
       color: #111827;
     }
@@ -26,6 +38,8 @@
     .row {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 16px;
       margin: 12px 0;
       border-bottom: 1px solid #f3f4f6;
       padding-bottom: 8px;
@@ -36,8 +50,17 @@
       font-size: 18px;
     }
 
+    .print-btn {
+      padding: 10px 24px;
+      background: #078b9a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     @media print {
-      button {
+      .print-btn {
         display: none;
       }
     }
@@ -46,51 +69,84 @@
 
 <body>
   <div class="receipt">
-    <h1>Payment Receipt</h1>
+
+    <h1>
+      {% if language == "ar" %}
+        إيصال قبض
+      {% else %}
+        Payment Receipt
+      {% endif %}
+    </h1>
 
     <div class="row">
-      <span>Receipt No</span>
-      <strong>SR-{{ payment.id|stringformat:"04d" }}</strong>
+      <span>
+        {% if language == "ar" %}رقم الإيصال{% else %}Receipt No{% endif %}
+      </span>
+      <strong dir="ltr">SR-{{ payment.id|stringformat:"04d" }}</strong>
     </div>
 
     <div class="row">
-      <span>Date</span>
-      <strong>{{ payment.payment_date }}</strong>
+      <span>
+        {% if language == "ar" %}التاريخ{% else %}Date{% endif %}
+      </span>
+      <strong dir="ltr">{{ payment.payment_date|date:"Y-m-d H:i" }}</strong>
     </div>
 
     <div class="row">
-      <span>Invoice</span>
-      <strong>SI-{{ invoice.id|stringformat:"04d" }}</strong>
+      <span>
+        {% if language == "ar" %}الفاتورة{% else %}Invoice{% endif %}
+      </span>
+      <strong dir="ltr">SI-{{ invoice.id|stringformat:"04d" }}</strong>
     </div>
 
     <div class="row">
-      <span>Customer</span>
+      <span>
+        {% if language == "ar" %}العميل{% else %}Customer{% endif %}
+      </span>
       <strong>{{ invoice.customer.name }}</strong>
     </div>
 
     <div class="row">
-      <span>Invoice Total</span>
-      <strong>${{ invoice.total_amount_usd }}</strong>
+      <span>
+        {% if language == "ar" %}الصندوق{% else %}Cash Box{% endif %}
+      </span>
+      <strong>{{ cash_box_name }}</strong>
     </div>
 
     <div class="row">
-      <span>Payment Amount</span>
-      <strong>${{ payment.amount }}</strong>
+      <span>
+        {% if language == "ar" %}إجمالي الفاتورة{% else %}Invoice Total{% endif %}
+      </span>
+      <strong dir="ltr">${{ invoice.total_amount_usd }}</strong>
     </div>
 
     <div class="row">
-      <span>Total Paid</span>
-      <strong>${{ total_paid }}</strong>
+      <span>
+        {% if language == "ar" %}مبلغ الدفعة{% else %}Payment Amount{% endif %}
+      </span>
+      <strong dir="ltr">${{ payment.amount }}</strong>
+    </div>
+
+    <div class="row">
+      <span>
+        {% if language == "ar" %}إجمالي المدفوع{% else %}Total Paid{% endif %}
+      </span>
+      <strong dir="ltr">${{ total_paid }}</strong>
     </div>
 
     <div class="row total">
-      <span>Remaining</span>
-      <strong>${{ remaining }}</strong>
+      <span>
+        {% if language == "ar" %}المبلغ المتبقي{% else %}Remaining{% endif %}
+      </span>
+      <strong dir="ltr">${{ remaining }}</strong>
     </div>
 
-    <br />
+    <br>
 
-    <button onclick="window.print()">Print</button>
+    <button class="print-btn" onclick="window.print()">
+      {% if language == "ar" %}طباعة الإيصال{% else %}Print Receipt{% endif %}
+    </button>
+
   </div>
 </body>
 </html>

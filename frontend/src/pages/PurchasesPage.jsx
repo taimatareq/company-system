@@ -7,7 +7,7 @@ const API_URL = "http://127.0.0.1:8000/api";
 
 function PurchasesPage({ setPage }) {
   const { t } = useTranslation();
-
+  const [successMessage, setSuccessMessage] = useState("");
   const [branches, setBranches] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -31,6 +31,13 @@ function PurchasesPage({ setPage }) {
   const [newRetailPrice, setNewRetailPrice] = useState("");
   const [newWholesalePrice, setNewWholesalePrice] =
   useState("");
+  const invoiceHeaderReady =
+  branch &&
+  warehouse &&
+  supplier &&
+  paymentType &&
+  exchangeRate &&
+  (paymentType !== "credit" || dueDate);
   useEffect(() => {
 
     // const headers = {
@@ -63,7 +70,11 @@ function PurchasesPage({ setPage }) {
           setExchangeRates(ratesList);
 
           if (ratesList.length > 0) {
-            setExchangeRate(ratesList[0].id);
+            const latestRate = [...ratesList].sort(
+              (a, b) => new Date(b.rate_date) - new Date(a.rate_date)
+            )[0];
+
+            setExchangeRate(latestRate.id);
           }
       })
       .catch((err) => {
@@ -94,34 +105,48 @@ function PurchasesPage({ setPage }) {
       });
   }, [branch]);
 
-  const handleItemChange = (index, field, value) => {
-  const updatedItems = [...invoiceItems];
-
-  updatedItems[index][field] = value;
-
+const handleItemChange = (index, field, value) => {
+  // إذا تم اختيار مادة
   if (field === "item") {
-    const itemAlreadyExists = invoiceItems.some(
+    const existingIndex = invoiceItems.findIndex(
       (row, i) =>
         i !== index &&
-        row.item === value
+        Number(row.item) === Number(value)
     );
 
-    if (itemAlreadyExists) {
-      alert("Item already added");
+    // المادة موجودة مسبقًا → زيد الكمية 1
+    if (existingIndex !== -1) {
+      const updatedItems = [...invoiceItems];
+
+      updatedItems[existingIndex] = {
+        ...updatedItems[existingIndex],
+        quantity: String(
+          Number(updatedItems[existingIndex].quantity || 0) + 1
+        ),
+      };
+
+      setInvoiceItems(updatedItems);
       return;
     }
 
+    // المادة غير موجودة → أضفها للسطر الحالي
+    const updatedItems = [...invoiceItems];
 
-    apiFetch(
-  `/items/${value}/last-purchase-price/`
-)
+    updatedItems[index] = {
+      ...updatedItems[index],
+      item: value,
+      quantity: updatedItems[index].quantity || "1",
+    };
+
+    // جلب آخر سعر شراء
+    apiFetch(`/items/${value}/last-purchase-price/`)
       .then((res) => res.json())
       .then((data) => {
-        updatedItems[index].unit_cost_usd =
-          data.unit_cost_usd || 0;
-
-        updatedItems[index].unit_cost_syp =
-          data.unit_cost_syp || 0;
+        updatedItems[index] = {
+          ...updatedItems[index],
+          unit_cost_usd: data.unit_cost_usd || 0,
+          unit_cost_syp: data.unit_cost_syp || 0,
+        };
 
         setInvoiceItems([...updatedItems]);
       });
@@ -129,10 +154,105 @@ function PurchasesPage({ setPage }) {
     return;
   }
 
+  // تعديل الكمية أو الأسعار
+  const updatedItems = [...invoiceItems];
+
+  updatedItems[index] = {
+    ...updatedItems[index],
+    [field]: value,
+  };
+
   setInvoiceItems(updatedItems);
 };
 
-    
+ const handleBarcodeScan = async (e, index) => {
+  if (e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  const input = e.currentTarget;
+  const barcode = input.value.trim();
+
+  if (!barcode) return;
+
+  try {
+    const response = await apiFetch(
+      `/items/by-barcode/?barcode=${encodeURIComponent(barcode)}`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.exists || !data.item) {
+      alert(t("item_not_found"));
+      input.value = "";
+      return;
+    }
+
+    const scannedItem = data.item;
+
+    // جيب آخر سعر شراء
+    const priceResponse = await apiFetch(
+      `/items/${scannedItem.id}/last-purchase-price/`
+    );
+
+    const priceData = await priceResponse.json();
+
+    setInvoiceItems((prevItems) => {
+      // هل المادة موجودة مسبقاً؟
+      const existingIndex = prevItems.findIndex(
+        (row) =>
+          Number(row.item) === Number(scannedItem.id)
+      );
+
+      // موجودة → زيد الكمية واحد
+      if (existingIndex !== -1) {
+        const updated = [...prevItems];
+
+        const currentQuantity = Number(
+          updated[existingIndex].quantity || 0
+        );
+
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: String(currentQuantity + 1),
+        };
+
+        return updated;
+      }
+
+      // المادة غير موجودة → أنشئ سطر جديد
+      const newRow = {
+        item: String(scannedItem.id),
+        quantity: "1",
+        unit_cost_usd: priceData.unit_cost_usd || 0,
+        unit_cost_syp: priceData.unit_cost_syp || 0,
+      };
+
+      // إذا في سطر فارغ استخدمه
+      const emptyIndex = prevItems.findIndex(
+        (row) => !row.item
+      );
+
+      if (emptyIndex !== -1) {
+        const updated = [...prevItems];
+
+        updated[emptyIndex] = newRow;
+
+        return updated;
+      }
+
+      // ما في سطر فارغ → أضف سطر
+      return [...prevItems, newRow];
+    });
+
+    // فضّي مربع السكان ليكون جاهز للسكان التالي
+    input.value = "";
+
+  } catch (error) {
+    console.error("Barcode scan error:", error);
+    alert(t("item_not_found"));
+  }
+};
 
   const addRow = () => {
     setInvoiceItems([
@@ -251,7 +371,7 @@ if (invalidRow) {
           return;
         }
 
-        toast.success("Purchase invoice created successfully");
+        setSuccessMessage(t("purchase_invoice_created"));
       })
       .catch((err) => {
         console.error(err);
@@ -524,7 +644,7 @@ const handleAddItem = async () => {
 </div>
         </div>
       </div>
-
+     
       <div className="card table-wrapper">
         <table>
           <thead>
@@ -542,11 +662,26 @@ const handleAddItem = async () => {
           <tbody>
   {invoiceItems.map((row, index) => (
     <tr key={index}>
-      <td>
+    <td>
   <div className="exchange-rate-row">
+
+    <input
+      type="text"
+      placeholder={
+        invoiceHeaderReady
+          ? t("scan_barcode")
+          : t("complete_invoice_details_first")
+      }
+      disabled={!invoiceHeaderReady}
+      onKeyDown={(e) => handleBarcodeScan(e, index)}
+      style={{
+        maxWidth: "160px",
+      }}
+    />
 
     <select
       value={row.item}
+      disabled={!invoiceHeaderReady}
       onChange={(e) =>
         handleItemChange(
           index,
@@ -572,16 +707,14 @@ const handleAddItem = async () => {
     <button
       type="button"
       className="add-rate-btn"
-      onClick={() =>
-        setShowItemModal(true)
-      }
+      disabled={!invoiceHeaderReady}
+      onClick={() => setShowItemModal(true)}
     >
       +
     </button>
 
   </div>
 </td>
-
       <td>
         <input
           type="number"
@@ -635,7 +768,8 @@ const handleAddItem = async () => {
 </tbody>
         </table>
 
-        <button className="add-btn" onClick={addRow}>
+        <button className="add-btn" onClick={addRow}  disabled={!invoiceHeaderReady}
+>
           {t("add_item")}
         </button>
 </div>
@@ -788,6 +922,35 @@ const handleAddItem = async () => {
           {t("save")}
         </button>
       </div>
+    </div>
+  </div>
+)}
+{successMessage && (
+  <div className="modal-overlay">
+    <div className="modal-content success-modal">
+
+      <div className="success-modal-icon">
+        ✓
+      </div>
+
+      <h3>{t("success")}</h3>
+
+      <p className="success-modal-message">
+        {successMessage}
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="modal-btn primary"
+          onClick={() => {
+            setSuccessMessage("");
+            setPage("purchase-invoices");
+          }}
+        >
+          {t("ok")}
+        </button>
+      </div>
+
     </div>
   </div>
 )}
