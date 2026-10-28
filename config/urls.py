@@ -27,11 +27,11 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("api/", include("notifications.urls")),
     path('api/users/', include('users.urls')),
-    path(
-    "api/organizations/",
-    include("organizations.urls"),
-),
+    path('api/users/', include('users.urls')),
+    path('api/organizations/', include('organizations.urls')),
+    path('api/', include('stock_transfers.urls')),
 ]
+
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,

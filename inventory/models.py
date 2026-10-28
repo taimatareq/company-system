@@ -7,6 +7,8 @@ class Inventory(models.Model):
         ('purchase', 'Purchase'),
         ('sale', 'Sale'),
         ('damage', 'Damage'),
+        ('transfer_out', 'Transfer Out'),
+        ('transfer_in', 'Transfer In'),
     ]
 
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE)

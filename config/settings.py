@@ -63,8 +63,8 @@ INSTALLED_APPS = [
     'services',
     'users',
     'organizations',
-
-    ]
+    'stock_transfers',
+]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

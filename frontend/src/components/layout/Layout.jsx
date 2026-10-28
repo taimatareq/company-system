@@ -177,6 +177,16 @@ setPage(
     <span>{t("inventory")}</span>
 
   </div>
+  <div
+  className={
+    page === "stock-transfers"
+      ? "menu-item active"
+      : "menu-item"
+  }
+  onClick={() => setPage("stock-transfers")}
+>
+  <span>{t("stock_transfers")}</span>
+</div>
     <div
   className={page === "damages" ? "menu-item active" : "menu-item"}
   onClick={() => setPage("damages")}

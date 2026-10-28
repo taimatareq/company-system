@@ -23,7 +23,8 @@ import AdministrationPage from "./pages/AdministrationPage";
 import DamagesPage from "./pages/DamagesPage";
 import SupplierDebtsPage from "./pages/SupplierDebtsPage";
 import BranchesPage from"./pages/BranchesPage";
-
+import StockTransfersPage from "./pages/StockTransfersPage.jsx";
+import StockTransferFormPage from "./pages/StockTransferFormPage.jsx";
 import WarehousesPage from "./pages/WarehousesPage";
 import SystemAdministrationPage from "./pages/SystemAdministrationPage";
 import POSPage from "./pages/POSPage";
@@ -125,17 +126,8 @@ const navigateTo = (newPage) => {
     localStorage.setItem("page", page);
   }, [page]);
   useEffect(() => {
-  if (!isLoggedIn) return;
-  const navigateTo = (newPage) => {
-  window.history.pushState(
-    { page: newPage },
-    "",
-    `?page=${newPage}`
-  );
-
-  setPage(newPage);
-};
-  const loadCurrentUser = async () => {
+    if (!isLoggedIn) return;
+    const loadCurrentUser = async () => {
     try {
       const response = await apiFetch("/users/me/");
 
@@ -201,7 +193,13 @@ if (!currentUser) {
 {activePage === "items" && <ItemsPage />}
 {activePage === "expenses" && <ExpensesPage />}
 {activePage === "inventory" && <InventoryPage />}
+{activePage === "stock-transfers" && (
+  <StockTransfersPage setPage={navigateTo} />
+)}
 
+{activePage === "stock-transfer-form" && (
+  <StockTransferFormPage setPage={navigateTo} />
+)}
 {activePage === "purchase-invoices" && (
   <PurchaseInvoicesPage
     setPage={setPage}

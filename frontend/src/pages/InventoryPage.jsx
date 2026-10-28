@@ -3,8 +3,7 @@ import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
 import DamageModal from "../components/DamageModal";
 function InventoryPage() {
-  const { t } = useTranslation();
-
+  const { t, i18n } = useTranslation();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -27,7 +26,19 @@ function InventoryPage() {
   const [selectedOperation, setSelectedOperation] = useState("all");
 
   const itemsPerPage = 5;
+  const isArabic = i18n.language?.startsWith("ar");
 
+  const getOperationLabel = (operationType) => {
+    if (operationType === "transfer_out") {
+      return isArabic ? "نقل صادر" : "Transfer Out";
+    }
+
+    if (operationType === "transfer_in") {
+      return isArabic ? "نقل وارد" : "Transfer In";
+    }
+
+    return t(operationType);
+  };
   const loadInventory = async () => {
     try {
       const response = await apiFetch("/inventory/");
@@ -53,13 +64,18 @@ function InventoryPage() {
     loadInventory();
   }, []);
 
-  const filteredInventory = inventory.filter(
-    (row) =>
-      row.item_name?.toLowerCase().includes(search.toLowerCase()) ||
-      row.warehouse_name?.toLowerCase().includes(search.toLowerCase()) ||
-      row.operation_type?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInventory = inventory.filter((row) => {
+  const searchValue = search.toLowerCase();
 
+  return (
+    row.item_name?.toLowerCase().includes(searchValue) ||
+    row.warehouse_name?.toLowerCase().includes(searchValue) ||
+    row.operation_type?.toLowerCase().includes(searchValue) ||
+    getOperationLabel(row.operation_type)
+      ?.toLowerCase()
+      .includes(searchValue)
+  );
+});
   const warehouses = [
     "all",
     ...new Set(inventory.map((row) => row.warehouse_name)),
@@ -296,7 +312,9 @@ function InventoryPage() {
                 setCurrentPage(1);
               }}
             >
-              {operation === "all" ? t("all_operations") : t(operation)}
+              {operation === "all"
+  ? t("all_operations")
+  : getOperationLabel(operation)}
             </button>
           ))}
         </div>
@@ -325,9 +343,13 @@ function InventoryPage() {
                   <td>{row.id}</td>
                   <td>{row.warehouse_name}</td>
                   <td>{row.item_name}</td>
-                  <td>{row.movement_qty}</td>
+                  <td>
+  <span dir="ltr" style={{ display: "inline-block" }}>
+    {row.movement_qty}
+  </span>
+</td>
                   <td>{row.quantity}</td>
-                  <td>{t(row.operation_type)}</td>
+                  <td>{getOperationLabel(row.operation_type)}</td>
                   <td>
                     {row.operation_date
                       ? new Date(row.operation_date).toLocaleDateString()
@@ -440,15 +462,19 @@ function InventoryPage() {
                   <div className="balance-info-card">
                     <small>{t("last_movement")}</small>
                     <h3>
-                      {balanceResult.last_operation_type
-                        ? t(balanceResult.last_operation_type)
-                        : "-"}
+                     {balanceResult.last_operation_type
+  ? getOperationLabel(balanceResult.last_operation_type)
+  : "-"}
                     </h3>
                   </div>
 
                   <div className="balance-info-card">
                     <small>{t("movement_qty")}</small>
-                    <h3>{balanceResult.last_movement_qty}</h3>
+                    <h3>
+  <span dir="ltr" style={{ display: "inline-block" }}>
+    {balanceResult.last_movement_qty}
+  </span>
+</h3>
                   </div>
 
                   <div className="balance-info-card">
