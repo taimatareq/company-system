@@ -23,7 +23,7 @@ import AdministrationPage from "./pages/AdministrationPage";
 import DamagesPage from "./pages/DamagesPage";
 import SupplierDebtsPage from "./pages/SupplierDebtsPage";
 import BranchesPage from"./pages/BranchesPage";
-
+import SalesReturnsPage from "./pages/SalesReturnsPage.jsx";
 import WarehousesPage from "./pages/WarehousesPage";
 import SystemAdministrationPage from "./pages/SystemAdministrationPage";
 import POSPage from "./pages/POSPage";
@@ -241,6 +241,7 @@ if (!currentUser) {
 )}
 
 {activePage === "sales-payments" && <SalesPaymentsPage />}
+{activePage === "sales-returns" && <SalesReturnsPage />}
 {activePage === "expense-categories" && <ExpenseCategoriesPage />}
 {activePage === "purchase-payments" && <PurchasePaymentsPage />}
 {activePage === "customer-debts" && <CustomerDebtsPage />}

@@ -6,7 +6,7 @@ function Layout({ page, setPage, onLogout, currentUser, children }) {
   const [notificationCount, setNotificationCount] = useState(0);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [salesOpen, setSalesOpen] = useState(
-  ["sales-invoices", "sales-payments", "customer-debts"].includes(page)
+  ["sales-invoices", "sales-payments", "sales-returns", "customer-debts"].includes(page)
 );
 
 const [purchasesOpen, setPurchasesOpen] = useState(
@@ -192,7 +192,7 @@ setPage(
 <div className="sidebar-group">
   <div
     className={`menu-item menu-group-title ${
-      ["sales-invoices", "sales-payments", "customer-debts"].includes(page)
+      ["sales-invoices", "sales-payments", "sales-returns", "customer-debts"].includes(page)
         ? "group-active"
         : ""
     }`}
@@ -234,7 +234,16 @@ setPage(
       >
         {t("payments")}
       </div>
-
+      <div
+       className={
+       page === "sales-returns"
+        ? "submenu-item active"
+       : "submenu-item"
+       }
+       onClick={() => setPage("sales-returns")}
+      >
+       مرتجعات المبيعات
+      </div>
       <div
         className={
           page === "customer-debts"
@@ -311,7 +320,6 @@ setPage(
       >
         {t("payments")}
       </div>
-
       <div
         className={
           page === "supplier-debts"
@@ -406,6 +414,7 @@ setPage(
 
 
 </div>
+
 <div
   className={
     page === "customer-debts"

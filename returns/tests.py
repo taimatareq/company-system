@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
+from organizations.models import Organization, OrganizationMembership
 from branches.models import Branch
 from warehouses.models import Warehouse
 from customers.models import Customer
@@ -164,13 +165,19 @@ class ReturnConfirmationTests(TestCase):
 class ReturnInventoryTests(TestCase):
 
     def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Returns Test Organization"
+        )
+
         self.branch = Branch.objects.create(
-            name="Test Branch"
+            name="Test Branch",
+            organization=self.organization,
         )
 
         self.warehouse = Warehouse.objects.create(
             name="Test Warehouse",
-            type="main",
+            organization=self.organization,
+            type="branch",
             branch=self.branch,
         )
 
@@ -184,6 +191,7 @@ class ReturnInventoryTests(TestCase):
 
         self.item = Item.objects.create(
             name="Test Product",
+            organization=self.organization,
             code="RETURN-TEST-001",
             item_type="product",
             retail_price=Decimal("20.00"),
@@ -398,6 +406,12 @@ class ReturnAPITests(TestCase):
             password="TestPassword123!",
         )
 
+        OrganizationMembership.objects.create(
+            organization=getattr(self, "organization", None) or Organization.objects.create(name="Returns API Test Organization"),
+            user=self.user,
+            role="company_admin",
+        )
+
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -451,6 +465,12 @@ class SalesReturnAPIWorkflowTests(ReturnInventoryTests):
             username="returns_workflow_user",
             email="workflow@example.com",
             password="TestPassword123!",
+        )
+
+        OrganizationMembership.objects.create(
+            organization=getattr(self, "organization", None) or Organization.objects.create(name="Returns API Test Organization"),
+            user=self.user,
+            role="company_admin",
         )
 
         self.client = APIClient()
@@ -550,6 +570,12 @@ class PurchaseReturnAPIWorkflowTests(ReturnInventoryTests):
             username="purchase_returns_test_user",
             email="purchase_returns@example.com",
             password="TestPassword123!",
+        )
+
+        OrganizationMembership.objects.create(
+            organization=getattr(self, "organization", None) or Organization.objects.create(name="Returns API Test Organization"),
+            user=self.user,
+            role="company_admin",
         )
 
         self.client = APIClient()
