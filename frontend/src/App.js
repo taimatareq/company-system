@@ -25,6 +25,7 @@ import SupplierDebtsPage from "./pages/SupplierDebtsPage";
 import BranchesPage from"./pages/BranchesPage";
 import StockTransfersPage from "./pages/StockTransfersPage.jsx";
 import StockTransferFormPage from "./pages/StockTransferFormPage.jsx";
+import SalesReturnsPage from "./pages/SalesReturnsPage.jsx";
 import WarehousesPage from "./pages/WarehousesPage";
 import SystemAdministrationPage from "./pages/SystemAdministrationPage";
 import POSPage from "./pages/POSPage";
@@ -239,6 +240,7 @@ if (!currentUser) {
 )}
 
 {activePage === "sales-payments" && <SalesPaymentsPage />}
+{activePage === "sales-returns" && <SalesReturnsPage />}
 {activePage === "expense-categories" && <ExpenseCategoriesPage />}
 {activePage === "purchase-payments" && <PurchasePaymentsPage />}
 {activePage === "customer-debts" && <CustomerDebtsPage />}

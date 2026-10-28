@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'notifications',
     'services',
-    'users',
+        'users',
+    'returns',
     'organizations',
     'stock_transfers',
 ]
