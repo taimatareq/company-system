@@ -106,6 +106,23 @@ function PurchasesPage({ setPage }) {
   }, [branch]);
 
 const handleItemChange = (index, field, value) => {
+    // منع الكميات الكسرية أو غير الصحيحة
+  if (field === "quantity") {
+    const quantityText = String(value);
+
+    // السماح بتفريغ الحقل أثناء التعديل
+    if (quantityText !== "") {
+      if (!/^[0-9]+$/.test(quantityText)) {
+        return;
+      }
+
+      const quantity = Number(quantityText);
+
+      if (!Number.isSafeInteger(quantity) || quantity < 1) {
+        return;
+      }
+    }
+  }
   // إذا تم اختيار مادة
   if (field === "item") {
     const existingIndex = invoiceItems.findIndex(
@@ -121,8 +138,14 @@ const handleItemChange = (index, field, value) => {
       updatedItems[existingIndex] = {
         ...updatedItems[existingIndex],
         quantity: String(
-          Number(updatedItems[existingIndex].quantity || 0) + 1
+          Math.max(
+            0,
+            Number.isSafeInteger(Number(updatedItems[existingIndex].quantity))
+              ? Number(updatedItems[existingIndex].quantity)
+              : 0
+          ) + 1
         ),
+        
       };
 
       setInvoiceItems(updatedItems);
@@ -716,14 +739,36 @@ const handleAddItem = async () => {
   </div>
 </td>
       <td>
-        <input
-          type="number"
-          value={row.quantity}
-          onChange={(e) =>
-            handleItemChange(index, "quantity", e.target.value)
-          }
-        />
-      </td>
+  <input
+    type="text"
+    inputMode="numeric"
+    pattern="[0-9]*"
+    value={row.quantity}
+    onChange={(e) => {
+      const value = e.target.value;
+
+      // السماح بتفريغ الحقل لتغيير الكمية
+      if (value === "") {
+        handleItemChange(index, "quantity", "");
+        return;
+      }
+
+      // منع الكسور والحروف والإشارات السالبة
+      if (!/^[0-9]+$/.test(value)) {
+        return;
+      }
+
+      const quantity = Number(value);
+
+      // قبول الأعداد الصحيحة الموجبة فقط
+      if (!Number.isSafeInteger(quantity) || quantity < 1) {
+        return;
+      }
+
+      handleItemChange(index, "quantity", value);
+    }}
+  />
+</td>
 
       <td>
         <input

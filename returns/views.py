@@ -29,7 +29,7 @@ class BaseReturnViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             locked_instance = (
                 self.get_queryset()
-                .select_for_update()
+                .select_for_update(of=("self",))
                 .get(pk=instance.pk)
             )
 
@@ -44,7 +44,7 @@ class BaseReturnViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = (
                 self.get_queryset()
-                .select_for_update()
+                .select_for_update(of=("self",))
                 .get(pk=serializer.instance.pk)
             )
 

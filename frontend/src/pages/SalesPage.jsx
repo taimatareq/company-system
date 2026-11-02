@@ -221,6 +221,20 @@ const handleAddExchangeRate = async () => {
   }
 };
 const handleItemChange = (index, field, value) => {
+    // السماح بكميات بيع صحيحة وموجبة فقط
+  if (field === "quantity" && value !== "") {
+    const quantityText = String(value);
+
+    if (!/^[0-9]+$/.test(quantityText)) {
+      return;
+    }
+
+    const quantity = Number(quantityText);
+
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      return;
+    }
+  }
   if (field === "item") {
     const itemAlreadyExists = invoiceItems.some(
       (row, i) =>
@@ -235,7 +249,11 @@ const handleItemChange = (index, field, value) => {
   }
 
   const updatedItems = [...invoiceItems];
-  updatedItems[index][field] = value;
+
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: value,
+    };
 
   if (field === "item") {
     const selectedItem = items.find(
@@ -276,17 +294,22 @@ const handleItemChange = (index, field, value) => {
 
     const available = Number(selectedItem?.available_quantity || 0);
 
-    if (
-      selectedItem?.item_type !== "service" &&
-      Number(value) > available
-    ) {
-     setAlertMessage(
-        `${t("only_available_in_stock")} ${available}`
-      );
-      updatedItems[index].quantity = available;
-      setInvoiceItems([...updatedItems]);
-      return;
-    }
+   if (
+  selectedItem?.item_type !== "service" &&
+  Number(value) > available
+) {
+  setAlertMessage(
+    `${t("only_available_in_stock")} ${available}`
+  );
+
+  // عدم وضع كمية عشرية تلقائيًا في حقل البيع
+  updatedItems[index].quantity = String(
+    Math.max(0, Math.floor(available))
+  );
+
+  setInvoiceItems([...updatedItems]);
+  return;
+}
   }
 
   setInvoiceItems(updatedItems);
@@ -975,16 +998,34 @@ input.value = "";
 
             <td>
               <input
-                type="number"
-                value={row.quantity}
-                onChange={(e) =>
-                  handleItemChange(
-                    index,
-                    "quantity",
-                    e.target.value
-                  )
-                }
-              />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={row.quantity}
+  onChange={(e) => {
+    const value = e.target.value;
+
+    // السماح بتفريغ الحقل لتغيير الكمية
+    if (value === "") {
+      handleItemChange(index, "quantity", "");
+      return;
+    }
+
+    // منع الكسور والحروف والأعداد السالبة
+    if (!/^[0-9]+$/.test(value)) {
+      return;
+    }
+
+    const quantity = Number(value);
+
+    // قبول الأعداد الصحيحة الموجبة فقط
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      return;
+    }
+
+    handleItemChange(index, "quantity", value);
+  }}
+/>
             </td>
 
             <td>

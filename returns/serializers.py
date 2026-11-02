@@ -14,7 +14,7 @@ from .models import (
     PurchaseReturnItem,
 )
 from .services import validate_return_items
-
+from .services import get_available_return_quantity
 
 class SalesReturnItemSerializer(serializers.ModelSerializer):
     invoice_item = serializers.PrimaryKeyRelatedField(
@@ -81,6 +81,7 @@ class BaseReturnSerializer(serializers.ModelSerializer):
                 )
 
             invoice = attrs.get("invoice")
+
             if invoice is None and self.instance:
                 invoice = self.instance.invoice
 
@@ -89,7 +90,6 @@ class BaseReturnSerializer(serializers.ModelSerializer):
                     {"invoice": "An invoice is required."}
                 )
 
-            # Validate each item and aggregate duplicate invoice lines.
             quantities = {}
             invoice_items = {}
 
@@ -108,13 +108,47 @@ class BaseReturnSerializer(serializers.ModelSerializer):
                     )
 
                 key = invoice_item.pk
+
                 quantities[key] = (
                     quantities.get(key, Decimal("0")) + quantity
                 )
+
                 invoice_items[key] = invoice_item
 
-            # Quantity limits are checked again during confirmation,
-            # inside the transaction that updates stock.
+            # تحديد نوع المرتجع
+            if isinstance(self, SalesReturnSerializer):
+                return_type = "sales"
+            elif isinstance(self, PurchaseReturnSerializer):
+                return_type = "purchase"
+            else:
+                raise serializers.ValidationError(
+                    "Unsupported return type."
+                )
+
+            # التحقق من الكمية المتاحة لكل مادة
+            for key, requested_quantity in quantities.items():
+                invoice_item = invoice_items[key]
+
+                # منع إرجاع كميات كسرية
+                if requested_quantity != requested_quantity.to_integral_value():
+                    raise serializers.ValidationError({
+                        "items": "Return quantity must be a whole number."
+                    })
+
+                # التحقق من الكمية المتاحة للإرجاع
+                available_quantity = get_available_return_quantity(
+                    invoice_item,
+                    return_type,
+                )
+
+                if requested_quantity > available_quantity:
+                    raise serializers.ValidationError({
+                        "items": (
+                            f"Cannot return {requested_quantity} units "
+                            f"of invoice item {key}. "
+                            f"Only {available_quantity} units are available."
+                        )
+                    })
 
         return attrs
 

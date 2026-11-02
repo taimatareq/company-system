@@ -17,7 +17,7 @@ from django.shortcuts import render
 from django.db.models import Sum
 from rest_framework.decorators import api_view
 from purchases.models import PurchaseInvoice
-
+from sales.models import SalesInvoice
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 

@@ -13,6 +13,7 @@ from .models import (
     SalesRepresentative,
     SalesPayment,
 )
+from decimal import Decimal
 from django.db.models import Sum
 from cashboxes.models import CashBoxTransaction
 from django.utils import timezone
@@ -24,11 +25,45 @@ class SalesInvoiceItemSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    returned_quantity = serializers.SerializerMethodField()
+    available_return_quantity = serializers.SerializerMethodField()
+
     class Meta:
         model = SalesInvoiceItem
         exclude = ["invoice"]
 
+    def get_returned_quantity(self, obj):
+        from returns.models import SalesReturnItem
+        from django.db.models import Sum
+        from decimal import Decimal
 
+        returned = SalesReturnItem.objects.filter(
+            invoice_item=obj,
+            sales_return__status="confirmed"
+        ).aggregate(
+            total=Sum("quantity")
+        )["total"]
+
+        return returned or Decimal("0")
+
+    def get_available_return_quantity(self, obj):
+        returned = self.get_returned_quantity(obj)
+
+        available = obj.quantity - returned
+
+        return max(Decimal("0"), available)
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Sales quantity must be greater than zero."
+            )
+
+        if value != value.to_integral_value():
+            raise serializers.ValidationError(
+                "Sales quantity must be a whole number."
+            )
+
+        return value
 class SalesInvoiceSerializer(serializers.ModelSerializer):
     total_paid = serializers.SerializerMethodField()
     remaining = serializers.SerializerMethodField()

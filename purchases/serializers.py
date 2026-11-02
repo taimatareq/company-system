@@ -14,6 +14,19 @@ class PurchaseInvoiceItemInputSerializer(serializers.Serializer):
     unit_cost_usd = serializers.DecimalField(max_digits=18, decimal_places=2)
     unit_cost_syp = serializers.DecimalField(max_digits=18, decimal_places=2)
 
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Purchase quantity must be greater than zero."
+            )
+
+        if value != value.to_integral_value():
+            raise serializers.ValidationError(
+                "Purchase quantity must be a whole number."
+            )
+
+        return value
+
 
 class PurchaseInvoiceCreateSerializer(serializers.Serializer):
     branch = serializers.IntegerField()
@@ -47,6 +60,19 @@ class PurchaseInvoiceItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseInvoiceItem
         fields = "__all__"
+
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Purchase quantity must be greater than zero."
+            )
+
+        if value != value.to_integral_value():
+            raise serializers.ValidationError(
+                "Purchase quantity must be a whole number."
+            )
+
+        return value
 
 
 class PurchaseInvoiceSerializer(serializers.ModelSerializer):

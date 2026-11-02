@@ -2,11 +2,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
-
+import AlertModal from "../components/common/AlertModal";
+import ConfirmModal from "../components/common/ConfirmModal";
 function SalesReturnsPage() {
   const { i18n } = useTranslation();
   const ar = i18n.language.startsWith("ar");
-
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: null,
+    id: null,
+  });
   const tr = (arabic, english) => (ar ? arabic : english);
 
   const [returns, setReturns] = useState([]);
@@ -15,8 +20,9 @@ function SalesReturnsPage() {
   const [invoiceId, setInvoiceId] = useState("");
   const [quantities, setQuantities] = useState({});
   const [reason, setReason] = useState("");
-
+  const [alertMessage, setAlertMessage] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -58,7 +64,22 @@ function SalesReturnsPage() {
       setLoading(false);
     }
   }, []);
+  useEffect(() => {
+  if (error) {
+    setAlertMessage(error);
+  }
+}, [error]);
 
+useEffect(() => {
+  if (notice) {
+    setAlertMessage(notice);
+  }
+}, [notice]);
+  useEffect(() => {
+  if (error) {
+    setAlertMessage(error);
+  }
+}, [error]);
   useEffect(() => {
     loadReturns();
   }, [loadReturns]);
@@ -66,6 +87,7 @@ function SalesReturnsPage() {
   const startCreating = async () => {
     setError("");
     setNotice("");
+    setEditingId(null);
 
     try {
       const data = await request("/sales-invoices/");
@@ -83,7 +105,54 @@ function SalesReturnsPage() {
       setError(err.message);
     }
   };
+  const startEditing = async (item) => {
+    if (item.status !== "draft") return;
 
+    setError("");
+    setNotice("");
+
+    try {
+      const [returnData, invoiceData] = await Promise.all([
+        request(`/sales-returns/${item.id}/`),
+        request(`/sales-invoices/${item.invoice}/`),
+      ]);
+
+      if (returnData.status !== "draft") {
+        setError(
+          tr(
+            "لا يمكن تعديل مرتجع تم تأكيده.",
+            "Confirmed returns cannot be edited."
+          )
+        );
+        return;
+      }
+
+      const existingQuantities = {};
+
+      (returnData.items || []).forEach((returnItem) => {
+        const invoiceItemId =
+          typeof returnItem.invoice_item === "object"
+            ? returnItem.invoice_item.id
+            : returnItem.invoice_item;
+
+        existingQuantities[invoiceItemId] =
+          returnItem.quantity;
+      });
+
+      setEditingId(item.id);
+
+      setInvoices([invoiceData]); // أضيفي هذا السطر
+      setInvoice(invoiceData);
+      setInvoiceId(String(invoiceData.id));
+
+      setQuantities(existingQuantities);
+      setReason(returnData.reason || "");
+
+      setCreating(true);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   const selectInvoice = async (id) => {
     setInvoiceId(id);
     setInvoice(null);
@@ -128,45 +197,100 @@ function SalesReturnsPage() {
     const invalidQuantity = selectedItems.some(
       (item) =>
         !Number.isFinite(Number(quantities[item.id])) ||
-        Number(quantities[item.id]) > Number(item.quantity)
+        Number(quantities[item.id]) >
+          Number(item.available_return_quantity ?? 0)
     );
 
     if (invalidQuantity) {
       setError(
         tr(
-          "كمية الإرجاع لا يمكن أن تتجاوز كمية الفاتورة.",
-          "Return quantity cannot exceed invoice quantity."
-        )
+  "كمية الإرجاع لا يمكن أن تتجاوز الكمية المتاحة بعد المرتجعات المؤكدة.",
+  "Return quantity cannot exceed the available quantity after confirmed returns."
+)
       );
       return;
     }
 
     const items = selectedItems.map((item) => ({
       invoice_item: item.id,
-      quantity: quantities[item.id],
+      quantity: Number(quantities[item.id]),
     }));
+
+    const isEditing = editingId !== null;
 
     setSaving(true);
 
     try {
-      await request("/sales-returns/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          invoice: Number(invoiceId),
-          reason,
-          items,
-        }),
-      });
+      await request(
+        isEditing
+          ? `/sales-returns/${editingId}/`
+          : "/sales-returns/",
+        {
+          method: isEditing ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(
+            isEditing
+              ? {
+                  reason,
+                  items,
+                }
+              : {
+                  invoice: Number(invoiceId),
+                  reason,
+                  items,
+                }
+          ),
+        }
+      );
 
       setCreating(false);
+      setEditingId(null);
+
+      setNotice(
+        isEditing
+          ? tr(
+              "تم حفظ تعديلات المرتجع بنجاح.",
+              "Return updated successfully."
+            )
+          : tr(
+              "تم إنشاء المرتجع كمسودة بنجاح.",
+              "Return draft created successfully."
+            )
+      );
+
+      await loadReturns();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+};
+  const deleteReturn = async (id) => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await apiFetch(`/sales-returns/${id}/`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+
+        throw new Error(
+          typeof data?.detail === "string"
+            ? data.detail
+            : JSON.stringify(data)
+        );
+      }
 
       setNotice(
         tr(
-          "تم إنشاء المرتجع كمسودة بنجاح.",
-          "Return draft created successfully."
+          "تم حذف مسودة المرتجع بنجاح.",
+          "Return draft deleted successfully."
         )
       );
 
@@ -177,16 +301,7 @@ function SalesReturnsPage() {
       setSaving(false);
     }
   };
-
   const confirmReturn = async (id) => {
-    const confirmed = window.confirm(
-      tr(
-        "هل تريدين تأكيد المرتجع؟ سيتم تحديث المخزون ولا يمكن تعديل المرتجع بعد التأكيد.",
-        "Confirm this return? Inventory will be updated and the return cannot be edited afterward."
-      )
-    );
-
-    if (!confirmed) return;
 
     setSaving(true);
     setError("");
@@ -258,55 +373,70 @@ function SalesReturnsPage() {
         </button>
       </div>
 
-      {error && (
-        <div className="card" role="alert">
-          <p style={{ color: "#b91c1c" }}>{error}</p>
-        </div>
-      )}
+      
 
-      {notice && (
-        <div className="card" role="status">
-          <p style={{ color: "#15803d" }}>{notice}</p>
-        </div>
-      )}
+       {creating && (
+  <div
+    className="modal-overlay"
+    onMouseDown={(e) => {
+      if (e.target === e.currentTarget && !saving) {
+        setCreating(false);
+      }
+    }}
+  >
+    <div
+      className="sales-return-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sales-return-modal-title"
+    >
+      <div className="sales-return-modal-header">
+        <h3 id="sales-return-modal-title">
+  {editingId !== null
+    ? tr("تعديل مرتجع مبيعات", "Edit Sales Return")
+    : tr("إضافة مرتجع مبيعات", "Create Sales Return")}
+</h3>
 
-      {creating && (
-        <div className="card">
-          <h3>
-            {tr("إضافة مرتجع مبيعات", "Create Sales Return")}
-          </h3>
+        <button
+          type="button"
+          className="sales-return-modal-close"
+          aria-label={tr("إغلاق", "Close")}
+          onClick={() => setCreating(false)}
+          disabled={saving}
+        >
+          ×
+        </button>
+      </div>
 
-          <div style={{ marginBottom: 16 }}>
+          <div>
             <label htmlFor="sales-return-invoice">
               {tr("فاتورة المبيعات", "Sales Invoice")}
             </label>
 
-            <select
-              id="sales-return-invoice"
-              value={invoiceId}
-              onChange={(e) => selectInvoice(e.target.value)}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: 10,
-                marginTop: 8,
-              }}
-            >
-              <option value="">
-                {tr("اختاري فاتورة", "Select Invoice")}
-              </option>
+           <select
+  id="sales-return-invoice"
+  value={invoiceId}
+  onChange={(e) => selectInvoice(e.target.value)}
+  disabled={editingId !== null}
+>
+  {editingId === null && (
+    <option value="">
+      {tr("اختاري فاتورة", "Select Invoice")}
+    </option>
+  )}
 
-              {invoices.map((inv) => (
-                <option key={inv.id} value={inv.id}>
-                  SI-{String(inv.id).padStart(4, "0")}
-                  {" — "}
-                  {inv.customer_name || ""}
-                </option>
-              ))}
-            </select>
+  {invoices.map((inv) => (
+    <option key={inv.id} value={inv.id}>
+      SI-{String(inv.id).padStart(4, "0")}
+      {" — "}
+      {inv.customer_name || ""}
+    </option>
+  ))}
+</select>
           </div>
-
-          {invoice && (
+          <br></br>
+<div className="sales-return-invoice-section">
+   {invoice && (
             <>
               <div className="invoice-info-grid">
                 <p>
@@ -327,60 +457,112 @@ function SalesReturnsPage() {
 
               <div className="table-wrapper">
                 <table>
-                  <thead>
-                    <tr>
-                      <th>{tr("المادة", "Item")}</th>
-                      <th>{tr("كمية الفاتورة", "Invoice Qty")}</th>
-                      <th>{tr("سعر الوحدة USD", "Unit USD")}</th>
-                      <th>{tr("سعر الوحدة SYP", "Unit SYP")}</th>
-                      <th>{tr("كمية الإرجاع", "Return Qty")}</th>
-                    </tr>
-                  </thead>
+  <thead>
+    <tr>
+      <th>{tr("المادة", "Item")}</th>
+      <th>{tr("كمية الفاتورة", "Invoice Qty")}</th>
+      <th>{tr("المرتجعة", "Returned")}</th>
+      <th>{tr("المتاحة", "Available")}</th>
+      <th>{tr("سعر الوحدة USD", "Unit USD")}</th>
+      <th>{tr("سعر الوحدة SYP", "Unit SYP")}</th>
+      <th>{tr("كمية الإرجاع", "Return Qty")}</th>
+    </tr>
+  </thead>
 
-                  <tbody>
-                    {(invoice.items || []).map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.item_name || "-"}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.unit_price_usd}</td>
-                        <td>{item.unit_price_syp}</td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            max={item.quantity}
-                            step="0.01"
-                            value={quantities[item.id] ?? ""}
-                            onChange={(e) =>
-                              setQuantities((previous) => ({
-                                ...previous,
-                                [item.id]: e.target.value,
-                              }))
-                            }
-                            style={{
-                              width: 110,
-                              padding: 8,
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+  <tbody>
+    {(invoice.items || []).map((item) => {
+      const available = Number(item.available_return_quantity ?? 0);
+      const returned = Number(item.returned_quantity ?? 0);
 
-                    {(invoice.items || []).length === 0 && (
-                      <tr>
-                        <td colSpan={5}>
-                          {tr(
-                            "لا توجد مواد في هذه الفاتورة.",
-                            "This invoice has no items."
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+      return (
+        <tr key={item.id}>
+          <td>{item.item_name || "-"}</td>
+
+          <td>{item.quantity}</td>
+
+          <td>{returned}</td>
+
+          <td
+            style={{
+              fontWeight: "bold",
+              color: available > 0 ? "#15803d" : "#b91c1c",
+            }}
+          >
+            {available}
+          </td>
+
+          <td>{item.unit_price_usd}</td>
+
+          <td>{item.unit_price_syp}</td>
+
+          <td>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              max={available}
+              
+              value={quantities[item.id] ?? ""}
+              disabled={available <= 0}
+              onChange={(e) => {
+  const value = e.target.value;
+
+  // السماح بتفريغ الحقل
+  if (value === "") {
+    setQuantities((prev) => ({
+      ...prev,
+      [item.id]: "",
+    }));
+    return;
+  }
+
+  // السماح بالأرقام الصحيحة الموجبة فقط
+  if (!/^[0-9]+$/.test(value)) {
+    return;
+  }
+
+  const quantity = Number(value);
+
+  if (
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > available
+    ) {
+  return;
+    }
+
+  setQuantities((prev) => ({
+    ...prev,
+    [item.id]: value,
+  }));
+}}
+              style={{
+                width: 110,
+                padding: 8,
+              }}
+            />
+          </td>
+        </tr>
+      );
+    })}
+
+    {(invoice.items || []).length === 0 && (
+      <tr>
+        <td colSpan={7}>
+          {tr(
+            "لا توجد مواد في هذه الفاتورة.",
+            "This invoice has no items."
+          )}
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
               </div>
             </>
           )}
+</div>
+         
 
           <div style={{ marginTop: 16 }}>
             <label htmlFor="sales-return-reason">
@@ -413,64 +595,31 @@ function SalesReturnsPage() {
               marginTop: "16px",
             }}
           >
-            <button
-              type="button"
-              onClick={saveReturn}
-              disabled={saving || !invoice}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "auto",
-                minWidth: "120px",
-                height: "40px",
-                padding: "0 18px",
-                border: "none",
-                borderRadius: "9px",
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: saving || !invoice ? "not-allowed" : "pointer",
-                opacity: saving || !invoice ? 0.6 : 1,
-                flex: "0 0 auto",
-                boxSizing: "border-box",
-              }}
-            >
-              {saving
-                ? tr("جارٍ الحفظ...", "Saving...")
-                : tr("حفظ كمسودة", "Save Draft")}
-            </button>
+           <button
+  type="button"
+  className="sales-return-save"
+  onClick={saveReturn}
+  disabled={saving || !invoice}
+>
+  {saving
+  ? tr("جارٍ الحفظ...", "Saving...")
+  : editingId !== null
+    ? tr("حفظ التعديلات", "Save Changes")
+    : tr("حفظ كمسودة", "Save Draft")}
+</button>
 
             <button
               type="button"
               onClick={() => setCreating(false)}
               disabled={saving}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "auto",
-                minWidth: "120px",
-                height: "40px",
-                padding: "0 18px",
-                border: "1px solid #d1d5db",
-                borderRadius: "9px",
-                backgroundColor: "#f3f4f6",
-                color: "#374151",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.6 : 1,
-                flex: "0 0 auto",
-                boxSizing: "border-box",
-              }}
+              className="sales-return-cancel"
             >
               {tr("إلغاء", "Cancel")}
-            </button>
+             </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       <div className="table-header">
         <div className="search-box">
@@ -547,21 +696,52 @@ function SalesReturnsPage() {
                   <td>{item.total_amount_usd}</td>
                   <td>{item.total_amount_syp}</td>
 
-                  <td>
-                    {item.status === "draft" ? (
-                      <button
-                        className="add-btn"
-                        disabled={saving}
-                        onClick={() => confirmReturn(item.id)}
-                      >
-                        {tr("تأكيد", "Confirm")}
-                      </button>
-                    ) : (
-                      <span>
-                        {tr("تم التأكيد", "Confirmed")}
-                      </span>
-                    )}
-                  </td>
+                 <td>
+  {item.status === "draft" ? (
+    <div className="return-actions">
+   <button
+  type="button"
+        className="edit-btn"
+  disabled={saving}
+  onClick={() => startEditing(item)}
+>
+  {tr("تعديل", "Edit")}
+</button>
+
+      <button
+        type="button"
+        className="edit-btn"
+        disabled={saving}
+        onClick={() =>
+              setConfirmModal({
+                isOpen: true,
+                type: "confirm",
+                id: item.id,
+              })
+            }
+      >
+        {tr("تأكيد", "Confirm")}
+      </button>
+      <button
+  type="button"
+                                className="delete-btn"
+  disabled={saving}
+  onClick={() =>
+  setConfirmModal({
+    isOpen: true,
+    type: "delete",
+    id: item.id,
+  })
+}
+  
+>
+  {tr("حذف", "Delete")}
+</button>
+    </div>
+  ) : (
+    <span>{tr("تم التأكيد", "Confirmed")}</span>
+  )}
+</td>
                 </tr>
               ))}
 
@@ -579,6 +759,55 @@ function SalesReturnsPage() {
           </table>
         )}
       </div>
+      <AlertModal
+  isOpen={!!alertMessage}
+  title={tr("تنبيه", "Warning")}
+  message={alertMessage}
+  onClose={() => setAlertMessage("")}
+/>
+<ConfirmModal
+  isOpen={confirmModal.isOpen}
+  title={
+    confirmModal.type === "delete"
+      ? tr("حذف مسودة المرتجع", "Delete Return Draft")
+      : tr("تأكيد مرتجع المبيعات", "Confirm Sales Return")
+  }
+  message={
+    confirmModal.type === "delete"
+      ? tr(
+          "هل تريدين حذف هذه المسودة نهائيًا؟ لا يمكن التراجع عن الحذف.",
+          "Delete this draft permanently? This action cannot be undone."
+        )
+      : tr(
+          "هل تريدين تأكيد المرتجع؟ سيتم تحديث المخزون ولا يمكن تعديل المرتجع بعد التأكيد.",
+          "Confirm this return? Inventory will be updated and the return cannot be edited afterward."
+        )
+  }
+  danger={confirmModal.type === "delete"}
+  loading={saving}
+  onCancel={() =>
+    setConfirmModal({
+      isOpen: false,
+      type: null,
+      id: null,
+    })
+  }
+  onConfirm={async () => {
+    const { type, id } = confirmModal;
+
+    setConfirmModal({
+      isOpen: false,
+      type: null,
+      id: null,
+    });
+
+    if (type === "delete") {
+      await deleteReturn(id);
+    } else if (type === "confirm") {
+      await confirmReturn(id);
+    }
+  }}
+/>
     </>
   );
 }

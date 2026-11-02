@@ -29,16 +29,8 @@ function InventoryPage() {
   const isArabic = i18n.language?.startsWith("ar");
 
   const getOperationLabel = (operationType) => {
-    if (operationType === "transfer_out") {
-      return isArabic ? "نقل صادر" : "Transfer Out";
-    }
-
-    if (operationType === "transfer_in") {
-      return isArabic ? "نقل وارد" : "Transfer In";
-    }
-
-    return t(operationType);
-  };
+  return t(operationType);
+};
   const loadInventory = async () => {
     try {
       const response = await apiFetch("/inventory/");
