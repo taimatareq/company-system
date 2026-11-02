@@ -1,185 +1,115 @@
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
+let refreshPromise = null;
 
 const clearSession = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("currentUser");
   localStorage.removeItem("selectedSalesInvoice");
-};
-
-
-const redirectToLogin = () => {
-  clearSession();
 
   window.location.href = "/";
 };
 
-
 const refreshAccessToken = async () => {
-  const refreshToken =
-    localStorage.getItem("refresh_token");
+  const refreshToken = localStorage.getItem("refresh_token");
 
   if (!refreshToken) {
     return null;
   }
-
 
   try {
     const response = await fetch(
       `${API_BASE_URL}/token/refresh/`,
       {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: JSON.stringify({
           refresh: refreshToken,
         }),
       }
     );
 
-
     if (!response.ok) {
       return null;
     }
 
-
     const data = await response.json();
 
-    const newAccessToken =
-      data.access;
-
-
-    if (!newAccessToken) {
-      return null;
+    if (data.access) {
+      localStorage.setItem("access_token", data.access);
+      return data.access;
     }
 
-
-    localStorage.setItem(
-      "access_token",
-      newAccessToken
-    );
-
-
-    return newAccessToken;
-
+    return null;
   } catch (error) {
-    console.error(
-      "Token refresh failed:",
-      error
-    );
-
+    console.error("Error refreshing token:", error);
     return null;
   }
 };
 
+const getNewAccessToken = async () => {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
 
-const buildHeaders = (
-  options,
-  token
-) => {
-  const isFormData =
-    options.body instanceof FormData;
+  return refreshPromise;
+};
 
+export async function apiFetch(endpoint, options = {}) {
+  const token = localStorage.getItem("access_token");
+
+  const isFormData = options.body instanceof FormData;
 
   const headers = {
     ...(options.headers || {}),
   };
 
-
   if (token) {
-    headers.Authorization =
-      `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
-
-  if (!isFormData) {
-    headers["Content-Type"] =
-      "application/json";
+  if (!isFormData && options.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
   }
 
-
-  return headers;
-};
-
-
-export async function apiFetch(
-  endpoint,
-  options = {}
-) {
-  let token =
-    localStorage.getItem(
-      "access_token"
-    );
-
-
-  let headers =
-    buildHeaders(
-      options,
-      token
-    );
-
-
-  let response =
-    await fetch(
-      `${API_BASE_URL}${endpoint}`,
-      {
-        ...options,
-        headers,
-      }
-    );
-
-
-  if (response.status !== 401) {
-    return response;
-  }
-
-
-  const newAccessToken =
-    await refreshAccessToken();
-
-
-  if (!newAccessToken) {
-    redirectToLogin();
-
-    throw new Error(
-      "SESSION_EXPIRED"
-    );
-  }
-
-
-  token =
-    newAccessToken;
-
-
-  headers =
-    buildHeaders(
-      options,
-      token
-    );
-
-
-  response =
-    await fetch(
-      `${API_BASE_URL}${endpoint}`,
-      {
-        ...options,
-        headers,
-      }
-    );
-
+  let response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    {
+      ...options,
+      headers,
+    }
+  );
 
   if (response.status === 401) {
-    redirectToLogin();
+    const newToken = await getNewAccessToken();
 
-    throw new Error(
-      "SESSION_EXPIRED"
-    );
+    if (newToken) {
+      const retryHeaders = {
+        ...headers,
+        Authorization: `Bearer ${newToken}`,
+      };
+
+      response = await fetch(
+        `${API_BASE_URL}${endpoint}`,
+        {
+          ...options,
+          headers: retryHeaders,
+        }
+      );
+    }
+
+    if (response.status === 401 || !newToken) {
+      clearSession();
+      throw new Error("SESSION_EXPIRED");
+    }
   }
-
 
   return response;
 }
+
+export default apiFetch;

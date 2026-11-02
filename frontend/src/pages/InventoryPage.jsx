@@ -2,249 +2,129 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
 import DamageModal from "../components/DamageModal";
-
-
 function InventoryPage() {
   const { t, i18n } = useTranslation();
-
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const [showBalanceModal, setShowBalanceModal] =
-    useState(false);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceWarehouse, setBalanceWarehouse] = useState("all");
+  const [balanceItem, setBalanceItem] = useState("all");
+  const [balanceResult, setBalanceResult] = useState(null);
+  const [balanceTable, setBalanceTable] = useState([]);
 
-  const [balanceWarehouse, setBalanceWarehouse] =
-    useState("all");
+  const [showDamageModal, setShowDamageModal] = useState(false);
+  const [damageWarehouse, setDamageWarehouse] = useState("");
+  const [damageItem, setDamageItem] = useState("");
+  const [damageQuantity, setDamageQuantity] = useState("");
+  const [damageNotes, setDamageNotes] = useState("");
+  const [damageError, setDamageError] = useState("");
 
-  const [balanceItem, setBalanceItem] =
-    useState("all");
-
-  const [balanceResult, setBalanceResult] =
-    useState(null);
-
-  const [balanceTable, setBalanceTable] =
-    useState([]);
-
-  const [showDamageModal, setShowDamageModal] =
-    useState(false);
-
-  const [damageWarehouse, setDamageWarehouse] =
-    useState("");
-
-  const [damageItem, setDamageItem] =
-    useState("");
-
-  const [damageQuantity, setDamageQuantity] =
-    useState("");
-
-  const [damageNotes, setDamageNotes] =
-    useState("");
-
-  const [damageError, setDamageError] =
-    useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  const [selectedWarehouse, setSelectedWarehouse] =
-    useState("all");
-
-  const [selectedOperation, setSelectedOperation] =
-    useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedWarehouse, setSelectedWarehouse] = useState("all");
+  const [selectedOperation, setSelectedOperation] = useState("all");
 
   const itemsPerPage = 5;
-
-
-  const isArabic =
-    i18n.language?.startsWith("ar");
-
+  const isArabic = i18n.language?.startsWith("ar");
 
   const getOperationLabel = (operationType) => {
     if (operationType === "transfer_out") {
-      return isArabic
-        ? "نقل صادر"
-        : "Transfer Out";
+      return isArabic ? "نقل صادر" : "Transfer Out";
     }
 
     if (operationType === "transfer_in") {
-      return isArabic
-        ? "نقل وارد"
-        : "Transfer In";
+      return isArabic ? "نقل وارد" : "Transfer In";
     }
 
     return t(operationType);
   };
-
-
   const loadInventory = async () => {
     try {
-      const response =
-        await apiFetch("/inventory/");
+      const response = await apiFetch("/inventory/");
+      const data = await response.json();
 
-      const data =
-        await response.json();
+      console.log("INVENTORY DATA:", data);
 
-      console.log(
-        "INVENTORY DATA:",
-        data
-      );
+      const inventoryList = Array.isArray(data)
+        ? data
+        : data.results || [];
 
-      const inventoryList =
-        Array.isArray(data)
-          ? data
-          : data.results || [];
-
-      inventoryList.sort(
-        (a, b) => b.id - a.id
-      );
-
-      setInventory(
-        inventoryList
-      );
-
+      inventoryList.sort((a, b) => b.id - a.id);
+      setInventory(inventoryList);
     } catch (error) {
       console.error(error);
-
       setInventory([]);
-
     } finally {
       setLoading(false);
     }
   };
 
-
   useEffect(() => {
     loadInventory();
   }, []);
 
+  const filteredInventory = inventory.filter((row) => {
+  const searchValue = search.toLowerCase();
 
-  const filteredInventory =
-    inventory.filter((row) => {
-      const searchValue =
-        search.toLowerCase();
-
-      return (
-        row.item_name
-          ?.toLowerCase()
-          .includes(searchValue) ||
-
-        row.warehouse_name
-          ?.toLowerCase()
-          .includes(searchValue) ||
-
-        row.operation_type
-          ?.toLowerCase()
-          .includes(searchValue) ||
-
-        getOperationLabel(
-          row.operation_type
-        )
-          ?.toLowerCase()
-          .includes(searchValue)
-      );
-    });
-
-
+  return (
+    row.item_name?.toLowerCase().includes(searchValue) ||
+    row.warehouse_name?.toLowerCase().includes(searchValue) ||
+    row.operation_type?.toLowerCase().includes(searchValue) ||
+    getOperationLabel(row.operation_type)
+      ?.toLowerCase()
+      .includes(searchValue)
+  );
+});
   const warehouses = [
     "all",
-    ...new Set(
-      inventory.map(
-        (row) =>
-          row.warehouse_name
-      )
-    ),
+    ...new Set(inventory.map((row) => row.warehouse_name)),
   ];
-
 
   const operations = [
     "all",
-    ...new Set(
-      inventory.map(
-        (row) =>
-          row.operation_type
-      )
-    ),
+    ...new Set(inventory.map((row) => row.operation_type)),
   ];
-
 
   const warehouseFilteredInventory =
     selectedWarehouse === "all"
       ? filteredInventory
       : filteredInventory.filter(
-          (row) =>
-            row.warehouse_name ===
-            selectedWarehouse
+          (row) => row.warehouse_name === selectedWarehouse
         );
-
 
   const operationFilteredInventory =
     selectedOperation === "all"
       ? warehouseFilteredInventory
       : warehouseFilteredInventory.filter(
-          (row) =>
-            row.operation_type ===
-            selectedOperation
+          (row) => row.operation_type === selectedOperation
         );
 
-
   const totalPages =
-    Math.ceil(
-      operationFilteredInventory.length /
-        itemsPerPage
-    ) || 1;
+    Math.ceil(operationFilteredInventory.length / itemsPerPage) || 1;
 
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
 
-  const startIndex =
-    (currentPage - 1) *
-    itemsPerPage;
-
-
-  const endIndex =
-    startIndex +
-    itemsPerPage;
-
-
-  const currentInventory =
-    operationFilteredInventory.slice(
-      startIndex,
-      endIndex
-    );
-
+  const currentInventory = operationFilteredInventory.slice(
+    startIndex,
+    endIndex
+  );
 
   const handleCheckBalance = () => {
     apiFetch(
       `/inventory/item-stock/?warehouse=${balanceWarehouse}&item=${balanceItem}`
     )
-      .then(
-        (res) =>
-          res.json()
-      )
+      .then((res) => res.json())
       .then((data) => {
-        console.log(
-          "BALANCE DATA:",
-          data
-        );
+        console.log("BALANCE DATA:", data);
 
-        if (
-          Array.isArray(data)
-        ) {
-          setBalanceTable(
-            data
-          );
-
-          setBalanceResult(
-            null
-          );
-
+        if (Array.isArray(data)) {
+          setBalanceTable(data);
+          setBalanceResult(null);
         } else {
-          setBalanceResult(
-            data
-          );
-
-          setBalanceTable(
-            []
-          );
+          setBalanceResult(data);
+          setBalanceTable([]);
         }
       })
       .catch((err) => {
@@ -252,113 +132,51 @@ function InventoryPage() {
       });
   };
 
-
   const handleCreateDamage = async () => {
     setDamageError("");
 
-    if (
-      !damageWarehouse ||
-      !damageItem ||
-      !damageQuantity
-    ) {
-      setDamageError(
-        "يرجى اختيار المستودع والمادة وإدخال الكمية"
-      );
-
+    if (!damageWarehouse || !damageItem || !damageQuantity) {
+      setDamageError("يرجى اختيار المستودع والمادة وإدخال الكمية");
       return;
     }
 
+    const quantity = Number(damageQuantity);
 
-    const quantity =
-      Number(
-        damageQuantity
-      );
-
-
-    if (
-      !Number.isFinite(
-        quantity
-      ) ||
-      quantity <= 0
-    ) {
-      setDamageError(
-        "كمية التالف يجب أن تكون أكبر من صفر"
-      );
-
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setDamageError("كمية التالف يجب أن تكون أكبر من صفر");
       return;
     }
-
 
     try {
-      const response =
-        await apiFetch(
-          "/damages/",
-          {
-            method: "POST",
+      const response = await apiFetch("/damages/", {
+        method: "POST",
+        body: JSON.stringify({
+          warehouse: Number(damageWarehouse),
+          damage_date: new Date().toISOString(),
+          notes: damageNotes,
+          items: [
+            {
+              item: Number(damageItem),
+              quantity,
+            },
+          ],
+        }),
+      });
 
-            body:
-              JSON.stringify({
-                warehouse:
-                  Number(
-                    damageWarehouse
-                  ),
-
-                damage_date:
-                  new Date()
-                    .toISOString(),
-
-                notes:
-                  damageNotes,
-
-                items: [
-                  {
-                    item:
-                      Number(
-                        damageItem
-                      ),
-
-                    quantity,
-                  },
-                ],
-              }),
-          }
-        );
-
-
-      const data =
-        await response.json();
-
+      const data = await response.json();
 
       if (!response.ok) {
-        console.error(
-          "DAMAGE ERROR:",
-          data
-        );
+        console.error("DAMAGE ERROR:", data);
 
-
-        const stockError =
-          Array.isArray(
-            data.stock
-          )
-            ? data.stock[0]
-            : data.stock;
-
-
-        const quantityError =
-          Array.isArray(
-            data.quantity
-          )
-            ? data.quantity[0]
-            : data.quantity;
-
-
-        const detailError =
-          Array.isArray(
-            data.detail
-          )
-            ? data.detail[0]
-            : data.detail;
-
+        const stockError = Array.isArray(data.stock)
+          ? data.stock[0]
+          : data.stock;
+        const quantityError = Array.isArray(data.quantity)
+          ? data.quantity[0]
+          : data.quantity;
+        const detailError = Array.isArray(data.detail)
+          ? data.detail[0]
+          : data.detail;
 
         setDamageError(
           stockError ||
@@ -366,775 +184,301 @@ function InventoryPage() {
             detailError ||
             "فشل تسجيل التالف. تأكدي من الكمية المتوفرة."
         );
-
         return;
       }
 
-
       await loadInventory();
 
+      setShowDamageModal(false);
+      setDamageWarehouse("");
+      setDamageItem("");
+      setDamageQuantity("");
+      setDamageNotes("");
+      setDamageError("");
+      setCurrentPage(1);
 
-      setShowDamageModal(
-        false
-      );
-
-      setDamageWarehouse(
-        ""
-      );
-
-      setDamageItem(
-        ""
-      );
-
-      setDamageQuantity(
-        ""
-      );
-
-      setDamageNotes(
-        ""
-      );
-
-      setDamageError(
-        ""
-      );
-
-      setCurrentPage(
-        1
-      );
-
-
-      alert(
-        "تم تسجيل التالف وخصمه من المخزون بنجاح"
-      );
-
+      alert("تم تسجيل التالف وخصمه من المخزون بنجاح");
     } catch (error) {
       console.error(error);
-
-      setDamageError(
-        "حدث خطأ أثناء تسجيل التالف"
-      );
+      setDamageError("حدث خطأ أثناء تسجيل التالف");
     }
   };
 
-
-  const selectedDamageStock =
-    inventory.find(
-      (row) =>
-        String(
-          row.warehouse
-        ) ===
-          String(
-            damageWarehouse
-          ) &&
-        String(
-          row.item
-        ) ===
-          String(
-            damageItem
-          )
-    );
-
+  const selectedDamageStock = inventory.find(
+    (row) =>
+      String(row.warehouse) === String(damageWarehouse) &&
+      String(row.item) === String(damageItem)
+  );
 
   return (
     <>
-
       <div className="page-header">
-
         <div>
-
-          <h1 className="page-title">
-            {t("inventory")}
-          </h1>
-
-          <p className="page-subtitle">
-            {t(
-              "manage_stock_movements"
-            )}
-          </p>
-
+          <h1 className="page-title">{t("inventory")}</h1>
+          <p className="page-subtitle">{t("manage_stock_movements")}</p>
         </div>
 
-
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
-
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
             className="add-btn"
             onClick={() => {
-              setDamageError(
-                ""
-              );
-
-              setShowDamageModal(
-                true
-              );
+              setDamageError("");
+              setShowDamageModal(true);
             }}
           >
             تسجيل تالف
           </button>
 
-
           <button
             className="add-btn"
-            onClick={() =>
-              setShowBalanceModal(
-                true
-              )
-            }
+            onClick={() => setShowBalanceModal(true)}
           >
-            {t(
-              "check_balance"
-            )}
+            {t("check_balance")}
           </button>
-
         </div>
-
       </div>
-
 
       <div className="stats-grid">
-
         <div className="stat-card">
-
-          <h3>
-            {inventory.length}
-          </h3>
-
-          <p>
-            {t(
-              "total_movements"
-            )}
-          </p>
-
+          <h3>{inventory.length}</h3>
+          <p>{t("total_movements")}</p>
         </div>
 
-
         <div className="stat-card">
-
           <h3>
-            {
-              inventory.filter(
-                (i) =>
-                  i.operation_type ===
-                  "purchase"
-              ).length
-            }
+            {inventory.filter((i) => i.operation_type === "purchase").length}
           </h3>
-
-          <p>
-            {t("purchases")}
-          </p>
-
+          <p>{t("purchases")}</p>
         </div>
 
-
         <div className="stat-card">
-
           <h3>
-            {
-              inventory.filter(
-                (i) =>
-                  i.operation_type ===
-                  "sale"
-              ).length
-            }
+            {inventory.filter((i) => i.operation_type === "sale").length}
           </h3>
-
-          <p>
-            {t("sales")}
-          </p>
-
+          <p>{t("sales")}</p>
         </div>
 
-
         <div className="stat-card">
-
           <h3>
-            {
-              inventory.filter(
-                (i) =>
-                  i.operation_type ===
-                  "damage"
-              ).length
-            }
+            {inventory.filter((i) => i.operation_type === "damage").length}
           </h3>
-
-          <p>
-            {t("damages")}
-          </p>
-
+          <p>{t("damages")}</p>
         </div>
-
       </div>
-
 
       <div className="table-header">
-
         <div className="search-box">
-
           <input
             type="text"
-            placeholder={t(
-              "search_inventory"
-            )}
+            placeholder={t("search_inventory")}
             value={search}
             onChange={(e) => {
-              setSearch(
-                e.target.value
-              );
-
-              setCurrentPage(
-                1
-              );
+              setSearch(e.target.value);
+              setCurrentPage(1);
             }}
           />
-
         </div>
-
 
         <div className="filter-buttons">
-
-          {warehouses.map(
-            (warehouse) => (
-
-              <button
-                key={warehouse}
-                className={
-                  selectedWarehouse ===
-                  warehouse
-                    ? "filter-btn active"
-                    : "filter-btn"
-                }
-                onClick={() => {
-                  setSelectedWarehouse(
-                    warehouse
-                  );
-
-                  setCurrentPage(
-                    1
-                  );
-                }}
-              >
-                {warehouse ===
-                "all"
-                  ? t(
-                      "all_warehouses"
-                    )
-                  : warehouse}
-              </button>
-
-            )
-          )}
-
+          {warehouses.map((warehouse) => (
+            <button
+              key={warehouse}
+              className={
+                selectedWarehouse === warehouse
+                  ? "filter-btn active"
+                  : "filter-btn"
+              }
+              onClick={() => {
+                setSelectedWarehouse(warehouse);
+                setCurrentPage(1);
+              }}
+            >
+              {warehouse === "all" ? t("all_warehouses") : warehouse}
+            </button>
+          ))}
         </div>
-
 
         <div className="filter-buttons">
-
-          {operations.map(
-            (operation) => (
-
-              <button
-                key={operation}
-                className={
-                  selectedOperation ===
-                  operation
-                    ? "filter-btn active"
-                    : "filter-btn"
-                }
-                onClick={() => {
-                  setSelectedOperation(
-                    operation
-                  );
-
-                  setCurrentPage(
-                    1
-                  );
-                }}
-              >
-                {operation ===
-                "all"
-                  ? t(
-                      "all_operations"
-                    )
-                  : getOperationLabel(
-                      operation
-                    )}
-              </button>
-
-            )
-          )}
-
+          {operations.map((operation) => (
+            <button
+              key={operation}
+              className={
+                selectedOperation === operation
+                  ? "filter-btn active"
+                  : "filter-btn"
+              }
+              onClick={() => {
+                setSelectedOperation(operation);
+                setCurrentPage(1);
+              }}
+            >
+              {operation === "all"
+  ? t("all_operations")
+  : getOperationLabel(operation)}
+            </button>
+          ))}
         </div>
-
       </div>
-
 
       <div className="card table-wrapper">
-
         {loading ? (
-
-          <p>
-            {t(
-              "loading_inventory"
-            )}
-          </p>
-
+          <p>{t("loading_inventory")}</p>
         ) : (
-
           <table>
-
             <thead>
-
               <tr>
-
-                <th>
-                  ID
-                </th>
-
-                <th>
-                  {t(
-                    "warehouse"
-                  )}
-                </th>
-
-                <th>
-                  {t(
-                    "item"
-                  )}
-                </th>
-
-                <th>
-                  {t(
-                    "movement_qty"
-                  )}
-                </th>
-
-                <th>
-                  {t(
-                    "quantity"
-                  )}
-                </th>
-
-                <th>
-                  {t(
-                    "operation_type"
-                  )}
-                </th>
-
-                <th>
-                  {t(
-                    "operation_date"
-                  )}
-                </th>
-
+                <th>ID</th>
+                <th>{t("warehouse")}</th>
+                <th>{t("item")}</th>
+                <th>{t("movement_qty")}</th>
+                <th>{t("quantity")}</th>
+                <th>{t("operation_type")}</th>
+                <th>{t("operation_date")}</th>
               </tr>
-
             </thead>
 
-
             <tbody>
-
-              {currentInventory.map(
-                (row) => (
-
-                  <tr key={row.id}>
-
-                    <td>
-                      {row.id}
-                    </td>
-
-                    <td>
-                      {
-                        row.warehouse_name
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        row.item_name
-                      }
-                    </td>
-
-                    <td>
-                      <span
-                        dir="ltr"
-                        style={{
-                          display:
-                            "inline-block",
-                        }}
-                      >
-                        {
-                          row.movement_qty
-                        }
-                      </span>
-                    </td>
-
-                    <td>
-                      {
-                        row.quantity
-                      }
-                    </td>
-
-                    <td>
-                      {getOperationLabel(
-                        row.operation_type
-                      )}
-                    </td>
-
-                    <td>
-                      {row.operation_date
-                        ? new Date(
-                            row.operation_date
-                          ).toLocaleDateString()
-                        : "-"}
-                    </td>
-
-                  </tr>
-
-                )
-              )}
-
+              {currentInventory.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.id}</td>
+                  <td>{row.warehouse_name}</td>
+                  <td>{row.item_name}</td>
+                  <td>
+  <span dir="ltr" style={{ display: "inline-block" }}>
+    {row.movement_qty}
+  </span>
+</td>
+                  <td>{row.quantity}</td>
+                  <td>{getOperationLabel(row.operation_type)}</td>
+                  <td>
+                    {row.operation_date
+                      ? new Date(row.operation_date).toLocaleDateString()
+                      : "-"}
+                  </td>
+                </tr>
+              ))}
             </tbody>
-
           </table>
-
         )}
 
-
         <div className="pagination">
-
           <button
-            onClick={() =>
-              setCurrentPage(
-                (page) =>
-                  page - 1
-              )
-            }
-            disabled={
-              currentPage ===
-              1
-            }
+            onClick={() => setCurrentPage((page) => page - 1)}
+            disabled={currentPage === 1}
           >
-            {t(
-              "previous"
-            )}
+            {t("previous")}
           </button>
-
 
           <span>
-            {t("page")}{" "}
-            {currentPage}{" "}
-            {t("of")}{" "}
-            {totalPages}
+            {t("page")} {currentPage} {t("of")} {totalPages}
           </span>
 
-
           <button
-            onClick={() =>
-              setCurrentPage(
-                (page) =>
-                  page + 1
-              )
-            }
-            disabled={
-              currentPage ===
-              totalPages
-            }
+            onClick={() => setCurrentPage((page) => page + 1)}
+            disabled={currentPage === totalPages}
           >
-            {t(
-              "next"
-            )}
+            {t("next")}
           </button>
-
         </div>
-
       </div>
 
-
       {showDamageModal && (
-
-        <DamageModal
-          inventory={
-            inventory
-          }
-
-          damageWarehouse={
-            damageWarehouse
-          }
-
-          setDamageWarehouse={
-            setDamageWarehouse
-          }
-
-          damageItem={
-            damageItem
-          }
-
-          setDamageItem={
-            setDamageItem
-          }
-
-          damageQuantity={
-            damageQuantity
-          }
-
-          setDamageQuantity={
-            setDamageQuantity
-          }
-
-          damageNotes={
-            damageNotes
-          }
-
-          setDamageNotes={
-            setDamageNotes
-          }
-
-          damageError={
-            damageError
-          }
-
-          setDamageError={
-            setDamageError
-          }
-
-          selectedDamageStock={
-            selectedDamageStock
-          }
-
-          handleCreateDamage={
-            handleCreateDamage
-          }
-
-          onClose={() => {
-            setShowDamageModal(
-              false
-            );
-
-            setDamageWarehouse(
-              ""
-            );
-
-            setDamageItem(
-              ""
-            );
-
-            setDamageQuantity(
-              ""
-            );
-
-            setDamageNotes(
-              ""
-            );
-
-            setDamageError(
-              ""
-            );
-          }}
-        />
-
-      )}
-
+  <DamageModal
+    inventory={inventory}
+    damageWarehouse={damageWarehouse}
+    setDamageWarehouse={setDamageWarehouse}
+    damageItem={damageItem}
+    setDamageItem={setDamageItem}
+    damageQuantity={damageQuantity}
+    setDamageQuantity={setDamageQuantity}
+    damageNotes={damageNotes}
+    setDamageNotes={setDamageNotes}
+    damageError={damageError}
+    setDamageError={setDamageError}
+    selectedDamageStock={selectedDamageStock}
+    handleCreateDamage={handleCreateDamage}
+    onClose={() => {
+      setShowDamageModal(false);
+      setDamageWarehouse("");
+      setDamageItem("");
+      setDamageQuantity("");
+      setDamageNotes("");
+      setDamageError("");
+    }}
+  />
+)}
 
       {showBalanceModal && (
-
         <div className="modal-overlay">
-
           <div className="balance-modal">
-
-            <h2>
-              {t(
-                "check_balance"
-              )}
-            </h2>
-
+            <h2>{t("check_balance")}</h2>
 
             <select
-              value={
-                balanceWarehouse
-              }
-              onChange={(e) =>
-                setBalanceWarehouse(
-                  e.target.value
-                )
-              }
+              value={balanceWarehouse}
+              onChange={(e) => setBalanceWarehouse(e.target.value)}
             >
-
-              <option value="all">
-                {t(
-                  "all_warehouses"
-                )}
-              </option>
-
+              <option value="all">{t("all_warehouses")}</option>
 
               {[
                 ...new Map(
-                  inventory.map(
-                    (row) => [
-                      row.warehouse,
-                      row,
-                    ]
-                  )
+                  inventory.map((row) => [row.warehouse, row])
                 ).values(),
               ].map((row) => (
-
-                <option
-                  key={
-                    row.warehouse
-                  }
-                  value={
-                    row.warehouse
-                  }
-                >
-                  {
-                    row.warehouse_name
-                  }
+                <option key={row.warehouse} value={row.warehouse}>
+                  {row.warehouse_name}
                 </option>
-
               ))}
-
             </select>
 
-
             <select
-              value={
-                balanceItem
-              }
-              onChange={(e) =>
-                setBalanceItem(
-                  e.target.value
-                )
-              }
+              value={balanceItem}
+              onChange={(e) => setBalanceItem(e.target.value)}
             >
-
-              <option value="all">
-                {t(
-                  "all_items"
-                )}
-              </option>
-
+              <option value="all">{t("all_items")}</option>
 
               {[
                 ...new Map(
-                  inventory.map(
-                    (row) => [
-                      row.item,
-                      row,
-                    ]
-                  )
+                  inventory.map((row) => [row.item, row])
                 ).values(),
               ].map((row) => (
-
-                <option
-                  key={
-                    row.item
-                  }
-                  value={
-                    row.item
-                  }
-                >
-                  {
-                    row.item_name
-                  }
+                <option key={row.item} value={row.item}>
+                  {row.item_name}
                 </option>
-
               ))}
-
             </select>
 
-
-            <button
-              className="save-btn"
-              onClick={
-                handleCheckBalance
-              }
-            >
-              {t(
-                "show_balance"
-              )}
+            <button className="save-btn" onClick={handleCheckBalance}>
+              {t("show_balance")}
             </button>
 
-
             {balanceResult && (
-
               <div className="balance-summary">
-
                 <div className="balance-main-card">
-
-                  <small>
-                    {t(
-                      "current_quantity"
-                    )}
-                  </small>
-
-                  <h1>
-                    {
-                      balanceResult.stock
-                    }
-                  </h1>
-
+                  <small>{t("current_quantity")}</small>
+                  <h1>{balanceResult.stock}</h1>
                 </div>
 
-
                 <div className="balance-info-grid">
-
                   <div className="balance-info-card">
-
-                    <small>
-                      {t(
-                        "last_movement"
-                      )}
-                    </small>
-
+                    <small>{t("last_movement")}</small>
                     <h3>
-                      {balanceResult.last_operation_type
-                        ? getOperationLabel(
-                            balanceResult.last_operation_type
-                          )
-                        : "-"}
+                     {balanceResult.last_operation_type
+  ? getOperationLabel(balanceResult.last_operation_type)
+  : "-"}
                     </h3>
-
                   </div>
 
-
                   <div className="balance-info-card">
-
-                    <small>
-                      {t(
-                        "movement_qty"
-                      )}
-                    </small>
-
+                    <small>{t("movement_qty")}</small>
                     <h3>
-                      <span
-                        dir="ltr"
-                        style={{
-                          display:
-                            "inline-block",
-                        }}
-                      >
-                        {
-                          balanceResult.last_movement_qty
-                        }
-                      </span>
-                    </h3>
-
+  <span dir="ltr" style={{ display: "inline-block" }}>
+    {balanceResult.last_movement_qty}
+  </span>
+</h3>
                   </div>
 
-
                   <div className="balance-info-card">
-
-                    <small>
-                      {t(
-                        "last_date"
-                      )}
-                    </small>
-
+                    <small>{t("last_date")}</small>
                     <h3>
                       {balanceResult.last_operation_date
                         ? new Date(
@@ -1142,162 +486,70 @@ function InventoryPage() {
                           ).toLocaleDateString()
                         : "-"}
                     </h3>
-
                   </div>
-
 
                   <div className="balance-info-card">
-
-                    <small>
-                      {t(
-                        "total_movements"
-                      )}
-                    </small>
-
-                    <h3>
-                      {
-                        balanceResult.total_movements
-                      }
-                    </h3>
-
+                    <small>{t("total_movements")}</small>
+                    <h3>{balanceResult.total_movements}</h3>
                   </div>
-
                 </div>
-
               </div>
-
             )}
 
-
-            {balanceTable.length >
-              0 && (
-
+            {balanceTable.length > 0 && (
               <div className="balance-table-wrapper">
-
                 <table className="balance-table">
-
                   <thead>
-
                     <tr>
-
-                      {balanceWarehouse ===
-                      "all" ? (
-
-                        <th>
-                          {t(
-                            "warehouse"
-                          )}
-                        </th>
-
+                      {balanceWarehouse === "all" ? (
+                        <th>{t("warehouse")}</th>
                       ) : (
-
-                        <th>
-                          {t(
-                            "item"
-                          )}
-                        </th>
-
+                        <th>{t("item")}</th>
                       )}
 
-
-                      <th>
-                        {t(
-                          "quantity"
-                        )}
-                      </th>
-
-                      <th>
-                        {t(
-                          "last_date"
-                        )}
-                      </th>
-
+                      <th>{t("quantity")}</th>
+                      <th>{t("last_date")}</th>
                     </tr>
-
                   </thead>
 
-
                   <tbody>
+                    {balanceTable.map((row, index) => (
+                      <tr key={index}>
+                        <td>
+                          {balanceWarehouse === "all"
+                            ? row.warehouse_name
+                            : row.item_name}
+                        </td>
 
-                    {balanceTable.map(
-                      (
-                        row,
-                        index
-                      ) => (
+                        <td>{row.quantity}</td>
 
-                        <tr
-                          key={
-                            index
-                          }
-                        >
-
-                          <td>
-                            {balanceWarehouse ===
-                            "all"
-                              ? row.warehouse_name
-                              : row.item_name}
-                          </td>
-
-
-                          <td>
-                            {
-                              row.quantity
-                            }
-                          </td>
-
-
-                          <td>
-                            {row.last_date
-                              ? new Date(
-                                  row.last_date
-                                ).toLocaleDateString()
-                              : "-"}
-                          </td>
-
-                        </tr>
-
-                      )
-                    )}
-
+                        <td>
+                          {row.last_date
+                            ? new Date(row.last_date).toLocaleDateString()
+                            : "-"}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
-
                 </table>
-
               </div>
-
             )}
-
 
             <button
               className="cancel-btn"
               onClick={() => {
-                setShowBalanceModal(
-                  false
-                );
-
-                setBalanceResult(
-                  null
-                );
-
-                setBalanceTable(
-                  []
-                );
+                setShowBalanceModal(false);
+                setBalanceResult(null);
+                setBalanceTable([]);
               }}
             >
-              {t(
-                "close"
-              )}
+              {t("close")}
             </button>
-
           </div>
-
         </div>
-
       )}
-
     </>
   );
 }
-
 
 export default InventoryPage;

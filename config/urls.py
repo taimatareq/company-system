@@ -1,17 +1,19 @@
+
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.conf import settings
+from django.conf.urls.static import static
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from django.conf import settings
-from django.conf.urls.static import static
-
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
     path('admin/', admin.site.urls),
+
     path('api/', include('items.urls')),
     path('api/', include('customers.urls')),
     path('api/', include('branches.urls')),
@@ -25,20 +27,26 @@ urlpatterns = [
     path('api/', include('finance.urls')),
     path('api/', include('damages.urls')),
     path('api/', include('sales.urls')),
+
+    # Returns Management
+    path('api/', include('returns.urls')),
+
+    # Stock Transfers
+    path('api/', include('stock_transfers.urls')),
+
+    # Authentication
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path("api/", include("notifications.urls")),
-    path('api/users/', include('users.urls')),
-    path("api/", include("stock_transfers.urls")),
-    path(
-        "api/organizations/",
-        include("organizations.urls"),
-    ),
-]
 
+    path('api/', include('notifications.urls')),
+    path('api/users/', include('users.urls')),
+
+    # SaaS Organizations
+    path('api/organizations/', include('organizations.urls')),
+]
 
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT
+        document_root=settings.MEDIA_ROOT,
     )
