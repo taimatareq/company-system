@@ -31,6 +31,7 @@ function CustomerDebtsPage() {
 
       const debts = list.filter(
         (invoice) =>
+          invoice.status !== "paid" &&
           Number(invoice.remaining || 0) > 0
       );
 

@@ -78,6 +78,9 @@ class PurchaseInvoiceSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_total_paid(self, obj):
+        if obj.payment_type == "cash":
+            return obj.total_amount_usd
+
         return (
             obj.payments.aggregate(
                 total=Sum("amount")
@@ -86,8 +89,13 @@ class PurchaseInvoiceSerializer(serializers.ModelSerializer):
         )
 
     def get_remaining(self, obj):
+        if obj.payment_type == "cash":
+            return 0
+
         paid = self.get_total_paid(obj)
-        return obj.total_amount_usd - paid
+        remaining = obj.total_amount_usd - paid
+
+        return max(remaining, 0)
 
 
 class PurchasePaymentSerializer(serializers.ModelSerializer):

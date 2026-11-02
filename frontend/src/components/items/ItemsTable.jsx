@@ -2,11 +2,13 @@ import { useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import Barcode from "react-barcode";
+import toast from "react-hot-toast";
+import AlertModal from "../common/AlertModal.jsx";
 
 function ItemsTable({ items, onDelete, onEdit }) {
   const { t } = useTranslation();
   const [barcodeItem, setBarcodeItem] = useState(null);
-
+  const [alertMessage, setAlertMessage] = useState("");
   const printBarcode = () => {
   const printContents =
     document.querySelector(".barcode-print-area").innerHTML;
@@ -61,7 +63,7 @@ function ItemsTable({ items, onDelete, onEdit }) {
       <table>
         <thead>
           <tr>
-            <th>ID</th>
+            {/* <th>ID</th> */}
             <th>{t("name")}</th>
             <th>{t("item_type")}</th>
             <th>{t("retail_price")}</th>
@@ -75,7 +77,7 @@ function ItemsTable({ items, onDelete, onEdit }) {
         <tbody>
           {items.map((item) => (
             <tr key={item.id}>
-              <td>{item.id}</td>
+              {/* <td>{item.id}</td> */}
               <td>{item.name}</td>
 
               <td>
@@ -109,7 +111,14 @@ function ItemsTable({ items, onDelete, onEdit }) {
 
                   <button
                     className="secondary-btn"
-                    onClick={() => setBarcodeItem(item)}
+                    onClick={() => {
+                          if (!item.barcode) {
+                            setAlertMessage(t("item_has_no_barcode"));
+                            return;
+                          }
+
+                          setBarcodeItem(item);
+                        }}
                   >
                     {t("print_barcode")}
                   </button>
@@ -126,16 +135,16 @@ function ItemsTable({ items, onDelete, onEdit }) {
       <h3>{barcodeItem.name}</h3>
 
       <Barcode
-  value={String(barcodeItem.id).padStart(6, "0")}
+  value={barcodeItem.barcode}
   width={3}
   height={90}
   fontSize={18}
   margin={10}
 />
 
-      <p>
-        {String(barcodeItem.id).padStart(6, "0")}
-      </p>
+<p>
+  {barcodeItem.barcode}
+</p>
 
             <div className="modal-actions no-print">
               <button
@@ -155,7 +164,14 @@ function ItemsTable({ items, onDelete, onEdit }) {
           </div>
         </div>
       )}
+      <AlertModal
+  isOpen={!!alertMessage}
+  title={t("warning")}
+  message={alertMessage}
+  onClose={() => setAlertMessage("")}
+/>
     </>
+    
   );
 }
 

@@ -5,7 +5,7 @@ from warehouses.models import Warehouse
 from customers.models import Customer
 from finance.models import ExchangeRate
 from items.models import Item
-
+from cashboxes.models import CashBox
 
 # 👤 Sales Representative
 class SalesRepresentative(models.Model):
@@ -45,7 +45,13 @@ class SalesInvoice(models.Model):
         blank=True,
         related_name="created_salesinvoices"
     )
-
+    cash_box = models.ForeignKey(
+    CashBox,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="sales_invoices"
+)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
@@ -116,9 +122,15 @@ class SalesPayment(models.Model):
         on_delete=models.CASCADE,
         related_name='payments'
     )
-
+    cash_box = models.ForeignKey(
+    CashBox,
+    on_delete=models.PROTECT,
+    related_name="sales_payments",
+    null=True,
+    blank=True
+    )
     payment_date = models.DateTimeField()
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
     notes = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):

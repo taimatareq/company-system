@@ -1485,6 +1485,7 @@ function StockTransferFormPage({ setPage }) {
                 ) => {
 
                   const quantityTooHigh =
+                    status === "draft" &&
                     row.stock !== null &&
                     row.quantity !== "" &&
                     Number(

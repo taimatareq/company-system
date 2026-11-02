@@ -11,6 +11,7 @@ from .views import (
     receivables_payables,
     SalesPaymentViewSet,
     sales_payment_receipt_print,
+    sales_average_price_report,
 )
 
 router = DefaultRouter()
@@ -34,6 +35,11 @@ urlpatterns = [
         "warehouse-items/",
         warehouse_items,
         name="warehouse_items"
+    ),
+    path(
+      "reports/average-sale-price/",
+      sales_average_price_report,
+      name="sales_average_price_report"
     ),
 
     path(

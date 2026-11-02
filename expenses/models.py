@@ -11,10 +11,19 @@ class ExpenseCategory(models.Model):
 
 
 class Expense(models.Model):
+    CURRENCY_CHOICES = [
+        ("USD", "USD"),
+        ("SYP", "SYP"),
+    ]
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     cash_box = models.ForeignKey(CashBox, on_delete=models.CASCADE)
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        default="USD"
+    )
     expense_date = models.DateTimeField()
     notes = models.CharField(max_length=255, blank=True, null=True)
     created_by = models.ForeignKey(

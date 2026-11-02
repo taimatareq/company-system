@@ -219,7 +219,10 @@ class SalesPaymentViewSet(
         SalesPaymentSerializer
     )
 def sales_payment_receipt_print(request, payment_id):
-    payment = SalesPayment.objects.get(pk=payment_id)
+    payment = SalesPayment.objects.select_related(
+        "invoice", "cash_box"
+    ).get(pk=payment_id)
+
     invoice = payment.invoice
 
     total_paid = (
@@ -231,18 +234,29 @@ def sales_payment_receipt_print(request, payment_id):
 
     remaining = invoice.total_amount_usd - total_paid
 
+    cash_box_name = (
+        payment.cash_box.name
+        if payment.cash_box_id
+        else "-"
+    )
+    language = request.GET.get("lang", "en")
+
+    if language not in ["ar", "en"]:
+        language = "en"
     return render(request, "receipts/sales_payment_receipt.html", {
         "payment": payment,
         "invoice": invoice,
         "total_paid": total_paid,
         "remaining": remaining,
+        "cash_box_name": cash_box_name,
+        "language": language,
     })
 @api_view(["GET"])
 def receivables_payables(request):
 
     sales_total = 0
 
-    for invoice in SalesInvoice.objects.all():
+    for invoice in SalesInvoice.objects.exclude(status="paid"):
 
         paid = (
 
@@ -297,3 +311,139 @@ def receivables_payables(request):
         purchase_total
 
     })
+
+from django.db.models import F, Min, Max, Count, Sum, DecimalField, ExpressionWrapper
+from django.utils.dateparse import parse_date
+
+
+@api_view(["GET"])
+def sales_average_price_report(request):
+    item_id = request.GET.get("item")
+    customer_id = request.GET.get("customer")
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+
+    queryset = (
+        SalesInvoiceItem.objects
+        .select_related("item", "invoice", "invoice__customer")
+        .filter(invoice__is_applied=True)
+    )
+
+    # فلترة حسب المادة
+    if item_id:
+        queryset = queryset.filter(item_id=item_id)
+
+    # فلترة حسب الزبون
+    if customer_id:
+        queryset = queryset.filter(
+            invoice__customer_id=customer_id
+        )
+
+    # فلترة من تاريخ
+    if date_from:
+        parsed_from = parse_date(date_from)
+
+        if not parsed_from:
+            return Response(
+                {"detail": "Invalid date_from"},
+                status=400
+            )
+
+        queryset = queryset.filter(
+            invoice__invoice_date__date__gte=parsed_from
+        )
+
+    # فلترة إلى تاريخ
+    if date_to:
+        parsed_to = parse_date(date_to)
+
+        if not parsed_to:
+            return Response(
+                {"detail": "Invalid date_to"},
+                status=400
+            )
+
+        queryset = queryset.filter(
+            invoice__invoice_date__date__lte=parsed_to
+        )
+
+    queryset = queryset.annotate(
+        total_line_usd=ExpressionWrapper(
+            F("quantity") * F("unit_price_usd"),
+            output_field=DecimalField(
+                max_digits=28,
+                decimal_places=4
+            )
+        ),
+        total_line_syp=ExpressionWrapper(
+            F("quantity") * F("unit_price_syp"),
+            output_field=DecimalField(
+                max_digits=28,
+                decimal_places=4
+            )
+        ),
+    )
+
+    rows = (
+        queryset
+        .values(
+            "item_id",
+            "item__name"
+        )
+        .annotate(
+            total_quantity=Sum("quantity"),
+            total_sales_usd=Sum("total_line_usd"),
+            total_sales_syp=Sum("total_line_syp"),
+
+            min_price_usd=Min("unit_price_usd"),
+            max_price_usd=Max("unit_price_usd"),
+
+            min_price_syp=Min("unit_price_syp"),
+            max_price_syp=Max("unit_price_syp"),
+
+            invoice_count=Count(
+                "invoice_id",
+                distinct=True
+            ),
+        )
+        .order_by("item__name")
+    )
+
+    result = []
+
+    for row in rows:
+        quantity = row["total_quantity"] or 0
+        total_usd = row["total_sales_usd"] or 0
+        total_syp = row["total_sales_syp"] or 0
+
+        result.append({
+            "item_id": row["item_id"],
+            "item_name": row["item__name"],
+
+            "total_quantity": quantity,
+
+            "average_price_usd":
+                total_usd / quantity
+                if quantity else 0,
+
+            "average_price_syp":
+                total_syp / quantity
+                if quantity else 0,
+
+            "min_price_usd":
+                row["min_price_usd"] or 0,
+
+            "max_price_usd":
+                row["max_price_usd"] or 0,
+
+            "min_price_syp":
+                row["min_price_syp"] or 0,
+
+            "max_price_syp":
+                row["max_price_syp"] or 0,
+
+            "invoice_count":
+                row["invoice_count"],
+        })
+
+    return Response(result)

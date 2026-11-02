@@ -1,23 +1,30 @@
-import { useState, useEffect } from "react";
-
 import SalesInvoicesPage from "./pages/SalesInvoicesPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ItemsPage from "./pages/ItemsPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
+import ExpensesPage from "./pages/ExpensesPage";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
+import ExpenseCategoriesPage from "./pages/ExpenseCategoriesPage";
 import Layout from "./components/layout/Layout.jsx";
 import PurchaseInvoicesPage from "./pages/PurchaseInvoicesPage.jsx";
+import { apiFetch } from "./api";
+import { Toaster } from "react-hot-toast";
+import "./styles/app.css";
 import PurchaseInvoiceDetailPage from "./pages/PurchaseInvoiceDetailPage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SalesInvoiceDetailPage from "./pages/SalesInvoiceDetailPage.jsx";
 import DashboardPage from "./pages/DashboardPage";
+import { useEffect, useState } from "react";
 import SalesPaymentsPage from "./pages/SalesPaymentsPage";
 import PurchasePaymentsPage from "./pages/PurchasePaymentsPage";
+import CashBoxesPage from "./pages/CashBoxesPage";
 import CustomerDebtsPage from "./pages/CustomerDebtsPage";
 import AdministrationPage from "./pages/AdministrationPage";
+import DamagesPage from "./pages/DamagesPage";
 import SupplierDebtsPage from "./pages/SupplierDebtsPage";
 import BranchesPage from "./pages/BranchesPage";
 import WarehousesPage from "./pages/WarehousesPage";
+import SystemAdministrationPage from "./pages/SystemAdministrationPage";
 import POSPage from "./pages/POSPage";
 import ExchangeRatesPage from "./pages/ExchangeRatesPage";
 import CustomersPage from "./pages/CustomersPage";
@@ -31,38 +38,109 @@ import CustomerStatementPage from "./pages/CustomerStatementPage";
 import SupplierStatementPage from "./pages/SupplierStatementPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";
+import ProfilePage from "./pages/ProfilePage";
+import AveragePriceReportPage from "./pages/AveragePriceReportPage";
 
 import StockTransfersPage from "./pages/StockTransfersPage.jsx";
 import StockTransferFormPage from "./pages/StockTransferFormPage.jsx";
 
-import { Toaster } from "react-hot-toast";
-
-import "./styles/app.css";
-
 
 function App() {
+  console.log(
+    "TOKEN BEFORE APP:",
+    localStorage.getItem("access_token")
+  );
+
 
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("access_token")
   );
 
+
+  const [currentUser, setCurrentUser] = useState(null);
+
+
   const [page, setPage] = useState(
-    localStorage.getItem("page")
-    || "dashboard"
+    localStorage.getItem("page") || "dashboard"
   );
+
+
+  const systemAdminPages = [
+    "system-administration",
+    "administration",
+    "users",
+    "profile",
+  ];
+
+
+  const isSystemAdmin =
+    currentUser?.is_superuser === true;
+
+
+  const activePage =
+    isSystemAdmin &&
+    !systemAdminPages.includes(page)
+      ? "system-administration"
+      : page;
+
+
+  const navigateTo = (newPage) => {
+    window.history.pushState(
+      { page: newPage },
+      "",
+      `?page=${newPage}`
+    );
+
+    setPage(newPage);
+  };
+
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const previousPage =
+        event.state?.page ||
+        new URLSearchParams(
+          window.location.search
+        ).get("page") ||
+        "dashboard";
+
+      localStorage.setItem(
+        "page",
+        previousPage
+      );
+
+      setPage(previousPage);
+    };
+
+
+    window.addEventListener(
+      "popstate",
+      handlePopState
+    );
+
+
+    return () => {
+      window.removeEventListener(
+        "popstate",
+        handlePopState
+      );
+    };
+  }, []);
+
 
   const [
     selectedPurchaseInvoice,
-    setSelectedPurchaseInvoice
+    setSelectedPurchaseInvoice,
   ] = useState(
     localStorage.getItem(
       "selectedPurchaseInvoice"
     )
   );
 
+
   const [
     selectedSalesInvoice,
-    setSelectedSalesInvoice
+    setSelectedSalesInvoice,
   ] = useState(
     localStorage.getItem(
       "selectedSalesInvoice"
@@ -71,7 +149,6 @@ function App() {
 
 
   const handleLogout = () => {
-
     localStorage.removeItem(
       "access_token"
     );
@@ -80,22 +157,78 @@ function App() {
       "refresh_token"
     );
 
+    localStorage.removeItem(
+      "page"
+    );
+
+    setPage("dashboard");
     setIsLoggedIn(false);
+    setCurrentUser(null);
   };
 
 
   useEffect(() => {
-
     localStorage.setItem(
       "page",
       page
     );
-
   }, [page]);
 
 
-  if (!isLoggedIn) {
+  useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
 
+
+    const loadCurrentUser = async () => {
+      try {
+        const response =
+          await apiFetch(
+            "/users/me/"
+          );
+
+
+        if (!response.ok) {
+          const errorText =
+            await response.text();
+
+          console.error(
+            "Failed to load current user:",
+            response.status,
+            errorText
+          );
+
+          return;
+        }
+
+
+        const data =
+          await response.json();
+
+
+        console.log(
+          "CURRENT USER:",
+          data
+        );
+
+
+        setCurrentUser(data);
+
+      } catch (error) {
+        console.error(
+          "Current user error:",
+          error
+        );
+      }
+    };
+
+
+    loadCurrentUser();
+  }, [isLoggedIn]);
+
+
+  if (!isLoggedIn) {
     return (
       <>
         <Toaster position="top-right" />
@@ -110,27 +243,46 @@ function App() {
   }
 
 
+  if (!currentUser) {
+    return (
+      <>
+        <Toaster position="top-right" />
+
+        <div className="loading-state">
+          Loading user permissions...
+        </div>
+      </>
+    );
+  }
+
+
   return (
     <>
       <Toaster position="top-right" />
 
       <Layout
-        page={page}
-        setPage={setPage}
+        page={activePage}
+        setPage={navigateTo}
         onLogout={handleLogout}
+        currentUser={currentUser}
       >
 
-        {page === "items" && (
+        {activePage === "items" && (
           <ItemsPage />
         )}
 
 
-        {page === "inventory" && (
+        {activePage === "expenses" && (
+          <ExpensesPage />
+        )}
+
+
+        {activePage === "inventory" && (
           <InventoryPage />
         )}
 
 
-        {page === "purchase-invoices" && (
+        {activePage === "purchase-invoices" && (
           <PurchaseInvoicesPage
             setPage={setPage}
             setSelectedPurchaseInvoice={
@@ -140,14 +292,14 @@ function App() {
         )}
 
 
-        {page === "purchases" && (
+        {activePage === "purchases" && (
           <PurchasesPage
             setPage={setPage}
           />
         )}
 
 
-        {page === "purchase-invoice-detail" && (
+        {activePage === "purchase-invoice-detail" && (
           <PurchaseInvoiceDetailPage
             invoiceId={
               selectedPurchaseInvoice
@@ -157,12 +309,12 @@ function App() {
         )}
 
 
-        {page === "dashboard" && (
+        {activePage === "dashboard" && (
           <DashboardPage />
         )}
 
 
-        {page === "sales-invoice-detail" && (
+        {activePage === "sales-invoice-detail" && (
           <SalesInvoiceDetailPage
             invoiceId={
               selectedSalesInvoice
@@ -172,7 +324,7 @@ function App() {
         )}
 
 
-        {page === "sales-invoices" && (
+        {activePage === "sales-invoices" && (
           <SalesInvoicesPage
             setPage={setPage}
             setSelectedSalesInvoice={
@@ -182,125 +334,168 @@ function App() {
         )}
 
 
-        {page === "sales" && (
+        {activePage === "sales" && (
           <SalesPage
             setPage={setPage}
           />
         )}
 
 
-        {page === "sales-payments" && (
+        {activePage === "sales-payments" && (
           <SalesPaymentsPage />
         )}
 
 
-        {page === "purchase-payments" && (
+        {activePage === "expense-categories" && (
+          <ExpenseCategoriesPage />
+        )}
+
+
+        {activePage === "purchase-payments" && (
           <PurchasePaymentsPage />
         )}
 
 
-        {page === "customer-debts" && (
+        {activePage === "customer-debts" && (
           <CustomerDebtsPage />
         )}
 
 
-        {page === "supplier-debts" && (
+        {activePage === "supplier-debts" && (
           <SupplierDebtsPage />
         )}
 
 
-        {page === "administration" && (
-          <AdministrationPage />
+        {activePage === "system-administration" && (
+          <SystemAdministrationPage
+            setPage={setPage}
+          />
         )}
 
 
-        {page === "users" && (
+        {activePage === "administration" && (
+          <AdministrationPage
+            setPage={navigateTo}
+          />
+        )}
+
+
+        {activePage === "users" && (
           <UsersPage
             setPage={setPage}
           />
         )}
 
 
-        {page === "branches" && (
+        {activePage === "branches" && (
           <BranchesPage />
         )}
 
 
-        {page === "warehouses" && (
+        {activePage === "warehouses" && (
           <WarehousesPage />
         )}
 
 
-        {page === "pos" && (
+        {activePage === "pos" && (
           <POSPage />
         )}
 
 
-        {page === "exchange-rates" && (
+        {activePage === "exchange-rates" && (
           <ExchangeRatesPage />
         )}
 
 
-        {page === "customers" && (
+        {activePage === "damages" && (
+          <DamagesPage />
+        )}
+
+
+        {activePage === "customers" && (
           <CustomersPage />
         )}
 
 
-        {page === "suppliers" && (
+        {activePage === "suppliers" && (
           <SuppliersPage />
         )}
 
 
-        {page === "sales-representatives" && (
+        {activePage === "sales-representatives" && (
           <SalesRepresentativesPage />
         )}
 
 
-        {page === "reports" && (
-          <ReportsPage />
-        )}
-
-
-        {page === "sales-report" && (
-          <SalesReportPage />
-        )}
-
-
-        {page === "purchases-report" && (
-          <PurchaseReportPage />
-        )}
-
-
-        {page === "inventory-report" && (
-          <InventoryReportPage />
-        )}
-
-
-        {page === "customer-statement" && (
-          <CustomerStatementPage />
-        )}
-
-
-        {page === "supplier-statement" && (
-          <SupplierStatementPage />
-        )}
-
-
-        {page === "notifications" && (
-          <NotificationsPage />
-        )}
-
-
-        {page === "stock-transfers" && (
-          <StockTransfersPage
+        {activePage === "reports" && (
+          <ReportsPage
             setPage={setPage}
           />
         )}
 
 
-        {page === "stock-transfer-form" && (
-          <StockTransferFormPage
+        {activePage === "sales-report" && (
+          <SalesReportPage />
+        )}
+
+
+        {activePage === "cash-boxes" && (
+          <CashBoxesPage
             setPage={setPage}
+            setSelectedSalesInvoice={
+              setSelectedSalesInvoice
+            }
+          />
+        )}
+
+
+        {activePage === "purchases-report" && (
+          <PurchaseReportPage />
+        )}
+
+
+        {activePage === "inventory-report" && (
+          <InventoryReportPage />
+        )}
+
+
+        {activePage === "customer-statement" && (
+          <CustomerStatementPage />
+        )}
+
+
+        {activePage === "supplier-statement" && (
+          <SupplierStatementPage />
+        )}
+
+
+        {activePage === "notifications" && (
+          <NotificationsPage />
+        )}
+
+
+        {activePage === "profile" && (
+          <ProfilePage />
+        )}
+
+
+        {activePage === "average-price-report" && (
+          <AveragePriceReportPage
+            setPage={setPage}
+          />
+        )}
+
+
+        {activePage === "stock-transfers" && (
+          <StockTransfersPage
+            setPage={navigateTo}
+          />
+        )}
+
+
+        {activePage === "stock-transfer-form" && (
+          <StockTransferFormPage
+            setPage={navigateTo}
           />
         )}
 

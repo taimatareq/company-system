@@ -38,17 +38,23 @@ function SalesInvoicesPage({
 
   }, []);
 const filteredInvoices = invoices.filter((invoice) => {
+  const searchText = search.trim().toLowerCase();
+
+  const invoiceNumber = `SI-${String(invoice.id).padStart(4, "0")}`.toLowerCase();
 
   const matchesSearch =
-    String(invoice.id).includes(search) ||
-
-    invoice.customer
+    invoiceNumber.includes(searchText) ||
+    String(invoice.id).includes(searchText) ||
+    invoice.customer_name
       ?.toLowerCase()
-      .includes(search.toLowerCase()) ||
-
-    invoice.warehouse
+      .includes(searchText) ||
+    invoice.warehouse_name
       ?.toLowerCase()
-      .includes(search.toLowerCase());
+      .includes(searchText) ||
+
+    invoice.cash_box_name
+      ?.toLowerCase()
+      .includes(searchText);
 
   const matchesStatus =
     selectedStatus === "all" ||
@@ -161,6 +167,7 @@ const currentInvoices =
               <th>{t("invoice")}</th>
               <th>{t("customer")}</th>
               <th>{t("warehouse")}</th>
+              <th>{t("cash_box")}</th>
               <th>{t("date")}</th>
               <th>{t("payment")}</th>
               <th>{t("status")}</th>
@@ -191,7 +198,7 @@ const currentInvoices =
                 <td>{invoice.customer_name}</td>
 
                 <td>{invoice.warehouse_name}</td>
-
+                <td>{invoice.cash_box_name || "-"}</td>
                 <td>
                   {new Date(
                     invoice.invoice_date

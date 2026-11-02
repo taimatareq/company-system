@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import { useTranslation } from "react-i18next";
+import DamageModal from "../components/DamageModal";
+
 
 function InventoryPage() {
   const { t, i18n } = useTranslation();
@@ -9,26 +11,53 @@ function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const [showBalanceModal, setShowBalanceModal] = useState(false);
-  const [balanceWarehouse, setBalanceWarehouse] = useState("all");
-  const [balanceItem, setBalanceItem] = useState("all");
-  const [balanceResult, setBalanceResult] = useState(null);
-  const [balanceTable, setBalanceTable] = useState([]);
+  const [showBalanceModal, setShowBalanceModal] =
+    useState(false);
 
-  const [showDamageModal, setShowDamageModal] = useState(false);
-  const [damageWarehouse, setDamageWarehouse] = useState("");
-  const [damageItem, setDamageItem] = useState("");
-  const [damageQuantity, setDamageQuantity] = useState("");
-  const [damageNotes, setDamageNotes] = useState("");
-  const [damageError, setDamageError] = useState("");
+  const [balanceWarehouse, setBalanceWarehouse] =
+    useState("all");
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedWarehouse, setSelectedWarehouse] = useState("all");
-  const [selectedOperation, setSelectedOperation] = useState("all");
+  const [balanceItem, setBalanceItem] =
+    useState("all");
+
+  const [balanceResult, setBalanceResult] =
+    useState(null);
+
+  const [balanceTable, setBalanceTable] =
+    useState([]);
+
+  const [showDamageModal, setShowDamageModal] =
+    useState(false);
+
+  const [damageWarehouse, setDamageWarehouse] =
+    useState("");
+
+  const [damageItem, setDamageItem] =
+    useState("");
+
+  const [damageQuantity, setDamageQuantity] =
+    useState("");
+
+  const [damageNotes, setDamageNotes] =
+    useState("");
+
+  const [damageError, setDamageError] =
+    useState("");
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
+  const [selectedWarehouse, setSelectedWarehouse] =
+    useState("all");
+
+  const [selectedOperation, setSelectedOperation] =
+    useState("all");
 
   const itemsPerPage = 5;
 
-  const isArabic = i18n.language?.startsWith("ar");
+
+  const isArabic =
+    i18n.language?.startsWith("ar");
 
 
   const getOperationLabel = (operationType) => {
@@ -50,18 +79,29 @@ function InventoryPage() {
 
   const loadInventory = async () => {
     try {
-      const response = await apiFetch("/inventory/");
-      const data = await response.json();
+      const response =
+        await apiFetch("/inventory/");
 
-      console.log("INVENTORY DATA:", data);
+      const data =
+        await response.json();
 
-      const inventoryList = Array.isArray(data)
-        ? data
-        : data.results || [];
+      console.log(
+        "INVENTORY DATA:",
+        data
+      );
 
-      inventoryList.sort((a, b) => b.id - a.id);
+      const inventoryList =
+        Array.isArray(data)
+          ? data
+          : data.results || [];
 
-      setInventory(inventoryList);
+      inventoryList.sort(
+        (a, b) => b.id - a.id
+      );
+
+      setInventory(
+        inventoryList
+      );
 
     } catch (error) {
       console.error(error);
@@ -79,34 +119,39 @@ function InventoryPage() {
   }, []);
 
 
-  const filteredInventory = inventory.filter((row) => {
-    const searchValue = search.toLowerCase();
+  const filteredInventory =
+    inventory.filter((row) => {
+      const searchValue =
+        search.toLowerCase();
 
-    return (
-      row.item_name
-        ?.toLowerCase()
-        .includes(searchValue) ||
+      return (
+        row.item_name
+          ?.toLowerCase()
+          .includes(searchValue) ||
 
-      row.warehouse_name
-        ?.toLowerCase()
-        .includes(searchValue) ||
+        row.warehouse_name
+          ?.toLowerCase()
+          .includes(searchValue) ||
 
-      row.operation_type
-        ?.toLowerCase()
-        .includes(searchValue) ||
+        row.operation_type
+          ?.toLowerCase()
+          .includes(searchValue) ||
 
-      getOperationLabel(row.operation_type)
-        ?.toLowerCase()
-        .includes(searchValue)
-    );
-  });
+        getOperationLabel(
+          row.operation_type
+        )
+          ?.toLowerCase()
+          .includes(searchValue)
+      );
+    });
 
 
   const warehouses = [
     "all",
     ...new Set(
       inventory.map(
-        (row) => row.warehouse_name
+        (row) =>
+          row.warehouse_name
       )
     ),
   ];
@@ -116,7 +161,8 @@ function InventoryPage() {
     "all",
     ...new Set(
       inventory.map(
-        (row) => row.operation_type
+        (row) =>
+          row.operation_type
       )
     ),
   ];
@@ -127,7 +173,8 @@ function InventoryPage() {
       ? filteredInventory
       : filteredInventory.filter(
           (row) =>
-            row.warehouse_name === selectedWarehouse
+            row.warehouse_name ===
+            selectedWarehouse
         );
 
 
@@ -136,7 +183,8 @@ function InventoryPage() {
       ? warehouseFilteredInventory
       : warehouseFilteredInventory.filter(
           (row) =>
-            row.operation_type === selectedOperation
+            row.operation_type ===
+            selectedOperation
         );
 
 
@@ -168,20 +216,35 @@ function InventoryPage() {
     apiFetch(
       `/inventory/item-stock/?warehouse=${balanceWarehouse}&item=${balanceItem}`
     )
-      .then((res) => res.json())
+      .then(
+        (res) =>
+          res.json()
+      )
       .then((data) => {
         console.log(
           "BALANCE DATA:",
           data
         );
 
-        if (Array.isArray(data)) {
-          setBalanceTable(data);
-          setBalanceResult(null);
+        if (
+          Array.isArray(data)
+        ) {
+          setBalanceTable(
+            data
+          );
+
+          setBalanceResult(
+            null
+          );
 
         } else {
-          setBalanceResult(data);
-          setBalanceTable([]);
+          setBalanceResult(
+            data
+          );
+
+          setBalanceTable(
+            []
+          );
         }
       })
       .catch((err) => {
@@ -207,11 +270,15 @@ function InventoryPage() {
 
 
     const quantity =
-      Number(damageQuantity);
+      Number(
+        damageQuantity
+      );
 
 
     if (
-      !Number.isFinite(quantity) ||
+      !Number.isFinite(
+        quantity
+      ) ||
       quantity <= 0
     ) {
       setDamageError(
@@ -229,30 +296,31 @@ function InventoryPage() {
           {
             method: "POST",
 
-            body: JSON.stringify({
-              warehouse:
-                Number(
-                  damageWarehouse
-                ),
+            body:
+              JSON.stringify({
+                warehouse:
+                  Number(
+                    damageWarehouse
+                  ),
 
-              damage_date:
-                new Date()
-                  .toISOString(),
+                damage_date:
+                  new Date()
+                    .toISOString(),
 
-              notes:
-                damageNotes,
+                notes:
+                  damageNotes,
 
-              items: [
-                {
-                  item:
-                    Number(
-                      damageItem
-                    ),
+                items: [
+                  {
+                    item:
+                      Number(
+                        damageItem
+                      ),
 
-                  quantity,
-                },
-              ],
-            }),
+                    quantity,
+                  },
+                ],
+              }),
           }
         );
 
@@ -269,19 +337,25 @@ function InventoryPage() {
 
 
         const stockError =
-          Array.isArray(data.stock)
+          Array.isArray(
+            data.stock
+          )
             ? data.stock[0]
             : data.stock;
 
 
         const quantityError =
-          Array.isArray(data.quantity)
+          Array.isArray(
+            data.quantity
+          )
             ? data.quantity[0]
             : data.quantity;
 
 
         const detailError =
-          Array.isArray(data.detail)
+          Array.isArray(
+            data.detail
+          )
             ? data.detail[0]
             : data.detail;
 
@@ -300,13 +374,33 @@ function InventoryPage() {
       await loadInventory();
 
 
-      setShowDamageModal(false);
-      setDamageWarehouse("");
-      setDamageItem("");
-      setDamageQuantity("");
-      setDamageNotes("");
-      setDamageError("");
-      setCurrentPage(1);
+      setShowDamageModal(
+        false
+      );
+
+      setDamageWarehouse(
+        ""
+      );
+
+      setDamageItem(
+        ""
+      );
+
+      setDamageQuantity(
+        ""
+      );
+
+      setDamageNotes(
+        ""
+      );
+
+      setDamageError(
+        ""
+      );
+
+      setCurrentPage(
+        1
+      );
 
 
       alert(
@@ -326,15 +420,24 @@ function InventoryPage() {
   const selectedDamageStock =
     inventory.find(
       (row) =>
-        String(row.warehouse) ===
-          String(damageWarehouse) &&
-        String(row.item) ===
-          String(damageItem)
+        String(
+          row.warehouse
+        ) ===
+          String(
+            damageWarehouse
+          ) &&
+        String(
+          row.item
+        ) ===
+          String(
+            damageItem
+          )
     );
 
 
   return (
     <>
+
       <div className="page-header">
 
         <div>
@@ -362,8 +465,13 @@ function InventoryPage() {
           <button
             className="add-btn"
             onClick={() => {
-              setDamageError("");
-              setShowDamageModal(true);
+              setDamageError(
+                ""
+              );
+
+              setShowDamageModal(
+                true
+              );
             }}
           >
             تسجيل تالف
@@ -378,7 +486,9 @@ function InventoryPage() {
               )
             }
           >
-            {t("check_balance")}
+            {t(
+              "check_balance"
+            )}
           </button>
 
         </div>
@@ -477,7 +587,9 @@ function InventoryPage() {
                 e.target.value
               );
 
-              setCurrentPage(1);
+              setCurrentPage(
+                1
+              );
             }}
           />
 
@@ -502,10 +614,13 @@ function InventoryPage() {
                     warehouse
                   );
 
-                  setCurrentPage(1);
+                  setCurrentPage(
+                    1
+                  );
                 }}
               >
-                {warehouse === "all"
+                {warehouse ===
+                "all"
                   ? t(
                       "all_warehouses"
                     )
@@ -536,10 +651,13 @@ function InventoryPage() {
                     operation
                   );
 
-                  setCurrentPage(1);
+                  setCurrentPage(
+                    1
+                  );
                 }}
               >
-                {operation === "all"
+                {operation ===
+                "all"
                   ? t(
                       "all_operations"
                     )
@@ -579,11 +697,15 @@ function InventoryPage() {
                 </th>
 
                 <th>
-                  {t("warehouse")}
+                  {t(
+                    "warehouse"
+                  )}
                 </th>
 
                 <th>
-                  {t("item")}
+                  {t(
+                    "item"
+                  )}
                 </th>
 
                 <th>
@@ -593,7 +715,9 @@ function InventoryPage() {
                 </th>
 
                 <th>
-                  {t("quantity")}
+                  {t(
+                    "quantity"
+                  )}
                 </th>
 
                 <th>
@@ -631,7 +755,9 @@ function InventoryPage() {
                     </td>
 
                     <td>
-                      {row.item_name}
+                      {
+                        row.item_name
+                      }
                     </td>
 
                     <td>
@@ -642,12 +768,16 @@ function InventoryPage() {
                             "inline-block",
                         }}
                       >
-                        {row.movement_qty}
+                        {
+                          row.movement_qty
+                        }
                       </span>
                     </td>
 
                     <td>
-                      {row.quantity}
+                      {
+                        row.quantity
+                      }
                     </td>
 
                     <td>
@@ -686,10 +816,13 @@ function InventoryPage() {
               )
             }
             disabled={
-              currentPage === 1
+              currentPage ===
+              1
             }
           >
-            {t("previous")}
+            {t(
+              "previous"
+            )}
           </button>
 
 
@@ -713,7 +846,9 @@ function InventoryPage() {
               totalPages
             }
           >
-            {t("next")}
+            {t(
+              "next"
+            )}
           </button>
 
         </div>
@@ -723,261 +858,85 @@ function InventoryPage() {
 
       {showDamageModal && (
 
-        <div className="modal-overlay">
+        <DamageModal
+          inventory={
+            inventory
+          }
 
-          <div className="balance-modal">
+          damageWarehouse={
+            damageWarehouse
+          }
 
-            <h2>
-              تسجيل تالف
-            </h2>
+          setDamageWarehouse={
+            setDamageWarehouse
+          }
 
+          damageItem={
+            damageItem
+          }
 
-            <label>
-              المستودع
-            </label>
+          setDamageItem={
+            setDamageItem
+          }
 
+          damageQuantity={
+            damageQuantity
+          }
 
-            <select
-              value={
-                damageWarehouse
-              }
-              onChange={(e) => {
-                setDamageWarehouse(
-                  e.target.value
-                );
+          setDamageQuantity={
+            setDamageQuantity
+          }
 
-                setDamageItem("");
-                setDamageQuantity("");
-                setDamageError("");
-              }}
-            >
+          damageNotes={
+            damageNotes
+          }
 
-              <option value="">
-                اختر المستودع
-              </option>
+          setDamageNotes={
+            setDamageNotes
+          }
 
+          damageError={
+            damageError
+          }
 
-              {[
-                ...new Map(
-                  inventory.map(
-                    (row) => [
-                      row.warehouse,
-                      row,
-                    ]
-                  )
-                ).values(),
-              ].map((row) => (
+          setDamageError={
+            setDamageError
+          }
 
-                <option
-                  key={
-                    row.warehouse
-                  }
-                  value={
-                    row.warehouse
-                  }
-                >
-                  {
-                    row.warehouse_name
-                  }
-                </option>
+          selectedDamageStock={
+            selectedDamageStock
+          }
 
-              ))}
+          handleCreateDamage={
+            handleCreateDamage
+          }
 
-            </select>
+          onClose={() => {
+            setShowDamageModal(
+              false
+            );
 
+            setDamageWarehouse(
+              ""
+            );
 
-            <label>
-              المادة
-            </label>
+            setDamageItem(
+              ""
+            );
 
+            setDamageQuantity(
+              ""
+            );
 
-            <select
-              value={damageItem}
-              onChange={(e) => {
-                setDamageItem(
-                  e.target.value
-                );
+            setDamageNotes(
+              ""
+            );
 
-                setDamageQuantity("");
-                setDamageError("");
-              }}
-              disabled={
-                !damageWarehouse
-              }
-            >
-
-              <option value="">
-                اختر المادة
-              </option>
-
-
-              {[
-                ...new Map(
-                  inventory
-                    .filter(
-                      (row) =>
-                        String(
-                          row.warehouse
-                        ) ===
-                        String(
-                          damageWarehouse
-                        )
-                    )
-                    .map(
-                      (row) => [
-                        row.item,
-                        row,
-                      ]
-                    )
-                ).values(),
-              ].map((row) => (
-
-                <option
-                  key={row.item}
-                  value={row.item}
-                >
-                  {row.item_name}
-                </option>
-
-              ))}
-
-            </select>
-
-
-            {damageWarehouse &&
-              damageItem && (
-
-              <div
-                style={{
-                  padding: "10px",
-                  marginTop:
-                    "10px",
-                  marginBottom:
-                    "10px",
-                  background:
-                    "#f5f5f5",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-
-                الرصيد الحالي:{" "}
-
-                <strong>
-                  {
-                    selectedDamageStock
-                      ?.quantity ??
-                    0
-                  }
-                </strong>
-
-              </div>
-
-            )}
-
-
-            <label>
-              كمية التالف
-            </label>
-
-
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={
-                damageQuantity
-              }
-              onChange={(e) => {
-                setDamageQuantity(
-                  e.target.value
-                );
-
-                setDamageError("");
-              }}
-              placeholder="أدخل كمية التالف"
-            />
-
-
-            <label>
-              سبب التلف / ملاحظات
-            </label>
-
-
-            <textarea
-              value={damageNotes}
-              onChange={(e) =>
-                setDamageNotes(
-                  e.target.value
-                )
-              }
-              placeholder="مثال: كسر، انتهاء صلاحية..."
-              rows="3"
-            />
-
-
-            {damageError && (
-
-              <p
-                style={{
-                  color: "red",
-                  marginTop:
-                    "10px",
-                }}
-              >
-                {damageError}
-              </p>
-
-            )}
-
-
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginTop:
-                  "15px",
-              }}
-            >
-
-              <button
-                className="save-btn"
-                onClick={
-                  handleCreateDamage
-                }
-              >
-                حفظ التالف
-              </button>
-
-
-              <button
-                className="cancel-btn"
-                onClick={() => {
-                  setShowDamageModal(
-                    false
-                  );
-
-                  setDamageWarehouse(
-                    ""
-                  );
-
-                  setDamageItem("");
-                  setDamageQuantity(
-                    ""
-                  );
-
-                  setDamageNotes("");
-                  setDamageError("");
-                }}
-              >
-                إلغاء
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
+            setDamageError(
+              ""
+            );
+          }}
+        />
 
       )}
 
@@ -1054,7 +1013,9 @@ function InventoryPage() {
             >
 
               <option value="all">
-                {t("all_items")}
+                {t(
+                  "all_items"
+                )}
               </option>
 
 
@@ -1070,10 +1031,16 @@ function InventoryPage() {
               ].map((row) => (
 
                 <option
-                  key={row.item}
-                  value={row.item}
+                  key={
+                    row.item
+                  }
+                  value={
+                    row.item
+                  }
                 >
-                  {row.item_name}
+                  {
+                    row.item_name
+                  }
                 </option>
 
               ))}
@@ -1202,7 +1169,8 @@ function InventoryPage() {
             )}
 
 
-            {balanceTable.length > 0 && (
+            {balanceTable.length >
+              0 && (
 
               <div className="balance-table-wrapper">
 
@@ -1237,7 +1205,6 @@ function InventoryPage() {
                           "quantity"
                         )}
                       </th>
-
 
                       <th>
                         {t(
@@ -1317,7 +1284,9 @@ function InventoryPage() {
                 );
               }}
             >
-              {t("close")}
+              {t(
+                "close"
+              )}
             </button>
 
           </div>

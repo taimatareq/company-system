@@ -25,15 +25,10 @@ Array.isArray(data)
 ?data
 :data.results||[];
 
-const debts=
-list.filter(
-
-(invoice)=>
-
-Number(
-invoice.remaining||0
-)>0
-
+const debts = list.filter(
+  (invoice) =>
+    invoice.status !== "paid" &&
+    Number(invoice.remaining || 0) > 0
 );
 
 setInvoices(
