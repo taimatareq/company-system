@@ -18,6 +18,7 @@ from django.db.models import Sum
 from rest_framework.decorators import api_view
 from purchases.models import PurchaseInvoice
 from sales.models import SalesInvoice
+from returns.services import get_available_return_quantity
 class PurchaseInvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -79,10 +80,20 @@ class PurchaseInvoiceViewSet(viewsets.ViewSet):
         items = []
 
         for invoice_item in invoice.items.all():
+            available_quantity = get_available_return_quantity(
+                invoice_item, "purchase"
+            )
+            returned_quantity = max(
+                invoice_item.quantity - available_quantity,
+                0
+            )
+
             items.append({
                 "id": invoice_item.id,
                 "item": invoice_item.item.name,
                 "quantity": invoice_item.quantity,
+                "returned_quantity": returned_quantity,
+                "available_return_quantity": available_quantity,
                 "unit_cost_usd": invoice_item.unit_cost_usd,
                 "unit_cost_syp": invoice_item.unit_cost_syp,
                 "total_usd": (

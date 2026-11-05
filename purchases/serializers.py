@@ -1,3 +1,6 @@
+
+from decimal import Decimal
+
 from rest_framework import serializers
 from django.db.models import Sum
 
@@ -57,9 +60,30 @@ class PurchaseInvoiceItemSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    returned_quantity = serializers.SerializerMethodField()
+    available_return_quantity = serializers.SerializerMethodField()
+
     class Meta:
         model = PurchaseInvoiceItem
         fields = "__all__"
+
+    def get_returned_quantity(self, obj):
+        from returns.models import PurchaseReturnItem
+
+        returned = PurchaseReturnItem.objects.filter(
+            invoice_item=obj,
+            purchase_return__status="confirmed"
+        ).aggregate(
+            total=Sum("quantity")
+        )["total"]
+
+        return returned or Decimal("0")
+
+    def get_available_return_quantity(self, obj):
+        returned = self.get_returned_quantity(obj)
+        available = obj.quantity - returned
+
+        return max(Decimal("0"), available)
 
     def validate_quantity(self, value):
         if value <= 0:

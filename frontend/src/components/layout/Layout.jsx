@@ -10,7 +10,7 @@ function Layout({ page, setPage, onLogout, currentUser, children }) {
 );
 
 const [purchasesOpen, setPurchasesOpen] = useState(
-  ["purchase-invoices", "purchase-payments", "supplier-debts"].includes(page)
+  ["purchase-invoices", "purchase-payments", "purchase-returns", "supplier-debts"].includes(page)
 );
   const { t, i18n } = useTranslation();
 useEffect(() => {
@@ -274,6 +274,7 @@ setPage(
       [
         "purchase-invoices",
         "purchase-payments",
+        "purchase-returns",
         "supplier-debts",
       ].includes(page)
         ? "group-active"
@@ -330,6 +331,18 @@ setPage(
       >
         {t("payments")}
       </div>
+      <div
+  className={
+    page === "purchase-returns"
+      ? "submenu-item active"
+      : "submenu-item"
+  }
+  onClick={() => setPage("purchase-returns")}
+>
+  {i18n.language.startsWith("ar")
+    ? "مرتجعات المشتريات"
+    : "Purchase Returns"}
+</div>
       <div
         className={
           page === "supplier-debts"
