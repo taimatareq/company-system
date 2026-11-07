@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 
 from django.db import transaction
@@ -13,8 +12,8 @@ from .models import (
     PurchaseReturn,
     PurchaseReturnItem,
 )
-from .services import validate_return_items
 from .services import get_available_return_quantity
+
 
 class SalesReturnItemSerializer(serializers.ModelSerializer):
     invoice_item = serializers.PrimaryKeyRelatedField(
@@ -97,7 +96,7 @@ class BaseReturnSerializer(serializers.ModelSerializer):
                 invoice_item = item_data["invoice_item"]
                 quantity = item_data["quantity"]
 
-                if quantity <= 0:
+                if not quantity.is_finite() or quantity <= 0:
                     raise serializers.ValidationError(
                         {"items": "Quantity must be greater than zero."}
                     )
@@ -115,7 +114,6 @@ class BaseReturnSerializer(serializers.ModelSerializer):
 
                 invoice_items[key] = invoice_item
 
-            # تحديد نوع المرتجع
             if isinstance(self, SalesReturnSerializer):
                 return_type = "sales"
             elif isinstance(self, PurchaseReturnSerializer):
@@ -125,17 +123,14 @@ class BaseReturnSerializer(serializers.ModelSerializer):
                     "Unsupported return type."
                 )
 
-            # التحقق من الكمية المتاحة لكل مادة
             for key, requested_quantity in quantities.items():
                 invoice_item = invoice_items[key]
 
-                # منع إرجاع كميات كسرية
                 if requested_quantity != requested_quantity.to_integral_value():
                     raise serializers.ValidationError({
                         "items": "Return quantity must be a whole number."
                     })
 
-                # التحقق من الكمية المتاحة للإرجاع
                 available_quantity = get_available_return_quantity(
                     invoice_item,
                     return_type,
@@ -178,6 +173,19 @@ class SalesReturnSerializer(BaseReturnSerializer):
             "created_by",
         ]
 
+    @staticmethod
+    def update_totals(instance):
+        total_usd = Decimal("0.00")
+        total_syp = Decimal("0.00")
+
+        for return_item in instance.items.all():
+            total_usd += return_item.quantity * return_item.unit_price_usd
+            total_syp += return_item.quantity * return_item.unit_price_syp
+
+        instance.total_amount_usd = total_usd
+        instance.total_amount_syp = total_syp
+        instance.save(update_fields=["total_amount_usd", "total_amount_syp"])
+
     @transaction.atomic
     def create(self, validated_data):
         items_data = validated_data.pop("items")
@@ -194,6 +202,7 @@ class SalesReturnSerializer(BaseReturnSerializer):
                 unit_price_syp=invoice_item.unit_price_syp,
             )
 
+        self.update_totals(sales_return)
         return sales_return
 
     @transaction.atomic
@@ -218,6 +227,8 @@ class SalesReturnSerializer(BaseReturnSerializer):
                     unit_price_usd=invoice_item.unit_price_usd,
                     unit_price_syp=invoice_item.unit_price_syp,
                 )
+
+            self.update_totals(instance)
 
         return instance
 
@@ -247,6 +258,19 @@ class PurchaseReturnSerializer(BaseReturnSerializer):
             "created_by",
         ]
 
+    @staticmethod
+    def update_totals(instance):
+        total_usd = Decimal("0.00")
+        total_syp = Decimal("0.00")
+
+        for return_item in instance.items.all():
+            total_usd += return_item.quantity * return_item.unit_cost_usd
+            total_syp += return_item.quantity * return_item.unit_cost_syp
+
+        instance.total_amount_usd = total_usd
+        instance.total_amount_syp = total_syp
+        instance.save(update_fields=["total_amount_usd", "total_amount_syp"])
+
     @transaction.atomic
     def create(self, validated_data):
         items_data = validated_data.pop("items")
@@ -263,6 +287,7 @@ class PurchaseReturnSerializer(BaseReturnSerializer):
                 unit_cost_syp=invoice_item.unit_cost_syp,
             )
 
+        self.update_totals(purchase_return)
         return purchase_return
 
     @transaction.atomic
@@ -287,5 +312,7 @@ class PurchaseReturnSerializer(BaseReturnSerializer):
                     unit_cost_usd=invoice_item.unit_cost_usd,
                     unit_cost_syp=invoice_item.unit_cost_syp,
                 )
+
+            self.update_totals(instance)
 
         return instance

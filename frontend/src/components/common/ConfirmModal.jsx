@@ -9,7 +9,7 @@ function ConfirmModal({
   loading = false,
   danger = false,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -44,7 +44,7 @@ function ConfirmModal({
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? "..." : t("confirm")}
+            {loading ? "..." : (i18n.language.startsWith("ar") ? "تأكيد" : t("confirm"))}
           </button>
         </div>
       </div>
