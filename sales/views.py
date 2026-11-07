@@ -15,11 +15,60 @@ from .models import SalesPayment
 from .serializers import SalesPaymentSerializer
 from items.models import Item
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+
+
 class SalesInvoiceViewSet(viewsets.ModelViewSet):
-    queryset = SalesInvoice.objects.all().order_by('-id')
+    queryset = SalesInvoice.objects.none()
     serializer_class = SalesInvoiceSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
 
+        membership = getattr(
+            user,
+            "organization_membership",
+            None
+        )
+
+        if not membership:
+            return SalesInvoice.objects.none()
+
+        if not membership.is_active:
+            return SalesInvoice.objects.none()
+
+        if not membership.organization.is_active:
+            return SalesInvoice.objects.none()
+
+        return SalesInvoice.objects.filter(
+            branch__organization=membership.organization
+        ).order_by("-id")
+    def perform_create(self, serializer):
+        serializer.save(
+            created_by=self.request.user
+        )
+    def update(self, request, *args, **kwargs):
+        from rest_framework.exceptions import MethodNotAllowed
+        raise MethodNotAllowed(
+            "PUT",
+            detail="Sales invoices cannot be edited directly."
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        from rest_framework.exceptions import MethodNotAllowed
+        raise MethodNotAllowed(
+            "PATCH",
+            detail="Sales invoices cannot be edited directly."
+        )
+    def destroy(self, request, *args, **kwargs):
+        from rest_framework.exceptions import MethodNotAllowed
+
+        raise MethodNotAllowed(
+            "DELETE",
+            detail="Sales invoices cannot be deleted directly."
+        ) 
 from django.shortcuts import render
 from .models import SalesInvoice
 
@@ -29,19 +78,44 @@ def sales_invoice_print(request, invoice_id):
     return render(request, "invoices/sales_invoice_print.html", {
         "invoice": invoice
     })
-class SalesRepresentativeViewSet(
-viewsets.ModelViewSet
-):
+class SalesRepresentativeViewSet(viewsets.ModelViewSet):
+    queryset = SalesRepresentative.objects.none()
+    serializer_class = SalesRepresentativeSerializer
+    permission_classes = [IsAuthenticated]
 
-    queryset = (
-        SalesRepresentative.objects
-        .filter(is_active=True)
-        .order_by("-id")
-    )
+    def get_organization(self):
+        membership = getattr(
+            self.request.user,
+            "organization_membership",
+            None
+        )
 
-    serializer_class = (
-        SalesRepresentativeSerializer
-    )
+        if (
+            membership is None
+            or not membership.is_active
+            or not membership.organization.is_active
+        ):
+            raise PermissionDenied(
+                "User does not belong to an active organization."
+            )
+
+        return membership.organization
+
+    def get_queryset(self):
+        return SalesRepresentative.objects.filter(
+            organization=self.get_organization(),
+            is_active=True
+        ).order_by("-id")
+
+    def perform_create(self, serializer):
+        serializer.save(
+            organization=self.get_organization()
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(
+            organization=self.get_organization()
+        )
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 

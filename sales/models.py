@@ -16,7 +16,11 @@ class SalesRepresentative(models.Model):
         decimal_places=2,
         default=0
     )
-
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="sales_representatives"
+    )
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

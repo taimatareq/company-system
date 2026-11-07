@@ -5,6 +5,10 @@ class Customer(models.Model):
     phone = models.CharField(max_length=50, blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="customers"
+    )
     def __str__(self):
         return self.name

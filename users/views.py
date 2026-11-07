@@ -9,7 +9,7 @@ import os
 from .models import EmailVerificationCode, UserProfile
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-
+from django.db import transaction
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -212,6 +212,7 @@ class UserListCreateView(generics.ListCreateAPIView):
             organization_membership__organization=membership.organization,
             organization_membership__is_active=True,
         ).order_by("id")    
+    @transaction.atomic
     def perform_create(self, serializer):
         current_user = self.request.user
 
@@ -314,6 +315,11 @@ class CurrentUserView(APIView):
             } if membership else None,
 
             "role": membership.role if membership else None,
+
+            "can_override_sale_price": (
+                membership.role == "company_admin"
+                or membership.can_override_sale_price
+            ) if membership else False,
         })
 
     def patch(self, request):

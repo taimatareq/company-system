@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 class Organization(models.Model):
     name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -38,6 +37,12 @@ class OrganizationMembership(models.Model):
     )
 
     is_active = models.BooleanField(default=True)
+
+    can_override_sale_price = models.BooleanField(
+        default=False,
+        help_text="Allows the employee to override sales item prices.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

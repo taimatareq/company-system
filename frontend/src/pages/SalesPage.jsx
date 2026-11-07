@@ -6,6 +6,7 @@ const API_URL = "http://127.0.0.1:8000/api";
 
 function SalesPage({ setPage }) {
     const { t } = useTranslation();
+    const [canOverrideSalePrice, setCanOverrideSalePrice] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
     const [branches, setBranches] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
@@ -48,6 +49,24 @@ const [newItemName, setNewItemName] =useState("");
 const [newItemCode, setNewItemCode] =useState("");
 const [newRetailPrice, setNewRetailPrice] =useState("");
 const [newWholesalePrice, setNewWholesalePrice] =useState("");
+useEffect(() => {
+  apiFetch("/users/me/")
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Failed to load user permissions");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      setCanOverrideSalePrice(
+        data.can_override_sale_price === true
+      );
+    })
+    .catch((error) => {
+      console.error("Error loading permissions:", error);
+      setCanOverrideSalePrice(false);
+    });
+}, []);
 useEffect(() => {
   if (!warehouse) {
     setItems([]);
@@ -436,8 +455,9 @@ if (invalidRow) {
     items: invoiceItems.map((row) => ({
       item: Number(row.item),
       quantity: Number(row.quantity),
-      unit_price_usd: Number(row.unit_price_usd),
-      unit_price_syp: Number(row.unit_price_syp),
+      ...(canOverrideSalePrice
+        ? { unit_price_usd: Number(row.unit_price_usd) }
+        : {}),
     })),
   };
 
@@ -1030,16 +1050,25 @@ input.value = "";
 
             <td>
               <input
-                type="number"
-                value={row.unit_price_usd}
-                onChange={(e) =>
-                  handleItemChange(
-                    index,
-                    "unit_price_usd",
-                    e.target.value
-                  )
-                }
-              />
+  type="number"
+  min="0"
+  step="0.01"
+  value={row.unit_price_usd}
+  readOnly={!canOverrideSalePrice}
+  onChange={(e) => {
+    if (!canOverrideSalePrice) return;
+
+    handleItemChange(
+      index,
+      "unit_price_usd",
+      e.target.value
+    );
+  }}
+  style={{
+    backgroundColor: canOverrideSalePrice ? "" : "#f3f4f6",
+    cursor: canOverrideSalePrice ? "text" : "not-allowed",
+  }}
+/>
             </td>
 
             <td>
